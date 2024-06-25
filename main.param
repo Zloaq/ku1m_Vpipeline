@@ -1,0 +1,22 @@
+#----------dir_name------------
+objfile_dir     '/Users/motomo/iriki/kSIRIUS/object'
+rawdata_dir     '/Users/motomo/iriki/kSIRIUS/{date}'
+work_dir        '/Users/motomo/iriki/kSIRIUS/{objectname}/{date}/'
+#----------download_param------------
+
+#----------flat_sky_param------------
+quicklook       0
+flatdiv         0
+cut             1
+skylevsub       1
+yskylevsub      0
+skysub          1
+#----------dostack_param------------
+dostack         1
+georotate       1
+xyshift         0
+dostack_base    'j'
+#----------comb_phot_param----------
+comb_per_set    1
+comb_all        1
+aperture_phot   0
