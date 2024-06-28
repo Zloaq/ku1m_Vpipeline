@@ -96,11 +96,12 @@ def setparam(band='j'):
 
 
 
-def cut_copy(inlist, gicrange, jhkcrange):
+def cut_copy(inlist, param):
     
     with open('_inlist', 'w') as fin, open('_outlist', 'w') as fout:
         cutrange = {
-            'g':gicrange, 'i':gicrange, 'j':jhkcrange, 'h':jhkcrange, 'k':jhkcrange
+            'g':param.g_cutrange, 'i':param.i_cutrange,
+            'j':param.j_cutrange, 'h':param.h_cutrange, 'k':param.k_cutrange
                     }
         for f1 in inlist:
             crange = cutrange[inlist[0]]

@@ -27,7 +27,7 @@
     解析を実行する際に、
 
 4
-    '任意のobject名' ファイル は main.param で指定した
+    '任意のobject名' ファイル は main.param で指定した。
     objfile_dir に保存されているはずです。ここで、fits 画像の header 
     に登録されている OBJECT の、一部(他天体と区別可能な範囲)を追記することで、
     適切に fits 画像を検索できます。

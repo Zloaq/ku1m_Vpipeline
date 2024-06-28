@@ -25,12 +25,14 @@ class readparam():
 		path_program = os.path.abspath(__file__)
 		dir_of_program = os.path.dirname(path_program)
 		dir1 = os.path.join(dir_of_program, 'main.param')
+		dir2 = os.path.join(dir_of_program, 'advanced.param')
 		if not os.access(dir1, os.R_OK):
 			print('main.param is not found')
 			sys.exit()
 
-		with open(dir1) as f:
-			for line in f:
+		with open(dir1) as f1, open(dir2) as f2:
+			lines = f1.readlines() + f2.readlines()
+			for line in lines:
 				if line.startswith('#') or line.strip() == '':
 					continue
 				varr = line.split()
@@ -48,7 +50,6 @@ class readparam():
 					varr[1] = varr[1].format(date = date, objectname = objectname)
 				exec("self." + varr[0] + " = " + varr[1])
 				
-
 
 class readobjfile():
 	
@@ -326,10 +327,17 @@ def execute_code(param, objparam, log, bands='jhk'):
 		fitspro = log.fitspro
 	else:
 		fitspro = []
-		subprocess.run('rm *.fits', shell=True)
-		iraf.chdir(param.rawdata_dir)
-		fitslist = glob.glob('*.fits')
-		fitslist, obnamelist = match_object(fitslist, objparam.SearchName)
+		fitslist = []
+		obnamelist = []
+		subprocess.run(f'rm {param.work_dir}/*.fits', shell=True)
+		if 'j' or 'h' or 'k' in bands:
+			iraf.chdir(param.rawdata_infra)
+			fitslist = glob.glob('*.fits')
+			fitslist, obnamelist += match_object(fitslist, objparam.SearchName)
+		if 'g' or 'i' in bands:
+			iraf.chdir(param.rawdata_opt)
+			fitslist = glob.glob('*.fits')
+			fitslist, obnamelist += match_object(fitslist, objparam.SearchName)
 		for file_name in fitslist:
 			shutil.copy(file_name, param.work_dir)
 	
@@ -348,7 +356,7 @@ def execute_code(param, objparam, log, bands='jhk'):
 	
 	if param.cut == 1:
 		fitslist = glob_latestproc(bands, fitspro)
-		bottom.cut_copy(fitslist, '[9:328,9:264]', '[9:328,9:264]')
+		bottom.cut_copy(fitslist, param)
 		fitspro.append('cut')
 
 	if param.skylevsub == 1:
@@ -363,6 +371,10 @@ def execute_code(param, objparam, log, bands='jhk'):
 		fitslist = glob_latestproc(bands, fitspro)
 		flat_sky.method2_1(fitslist)
 		fitspro.append('lev')
+	elif param.custom_skylev == 1:
+		fitslist = glob_latestproc(bands, fitspro)
+		print('yetyetyet')
+		sys.exit()
 		
 	if param.skysub == 1:
 		fitslist = glob_latestproc(bands, fitspro)
