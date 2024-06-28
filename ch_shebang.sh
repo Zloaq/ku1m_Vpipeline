@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# 使用法: ./update_shebang.sh
+# 使用法: ./update_shebang.sh path_to_python_script
+
 
 
 PYTHON_PATH=$(which python3)

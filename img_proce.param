@@ -1,0 +1,38 @@
+#----------dir_name------------
+date_dir        '/Users/motomo/iriki/kSIRIUS/date'
+objname_dir     '/Users/motomo/iriki/kSIRIUS/object'
+rawdata_dir     '/Users/motomo/iriki/kSIRIUS/{date}'
+work_dir        '/Users/motomo/iriki/kSIRIUS/{objectname}/{date}/'
+#----------download_param------------
+scpcom          ''
+download1       '/media/HDD/kSIRIUS/{date}/*.fits'
+download2       '/media/HDD/optcam/{date}/*.fits'
+#----------main_param------------
+quicklook       0
+flatdiv         0
+cut			    1
+skylevsub       1
+yskylevsub      0
+skysub          1
+rm_cut          0
+rm_st           0
+rm_sky          0
+#----------dostack_param------------
+dostack         1
+tran_self       0
+tran_relative   1
+georotate       1
+multi           0
+xyshift         0
+dostack_base    'j'
+#----------comb_phot_param----------
+comb_per_set    1
+comb_all        1
+aperture_phot   0
+eachphot        1
+setcombphot     0
+allcombphot     0
+daocoords       0
+imexcoords      1
+fwhm            3
+threshold       3

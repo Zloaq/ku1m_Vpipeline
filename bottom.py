@@ -4,12 +4,8 @@ import os
 import re
 import sys
 import math
-import scipy as sp
-import numpy as np
 from astropy.io import fits
-from scipy.stats import mode
 from pyraf import iraf
-
 
 
 class readheader():
@@ -96,19 +92,15 @@ def setparam(band='j'):
 
 
 
-def cut_copy(inlist, param):
+def cut_copy(inlist, crange, path_to_outdir):
     
     with open('_inlist', 'w') as fin, open('_outlist', 'w') as fout:
-        cutrange = {
-            'g':param.g_cutrange, 'i':param.i_cutrange,
-            'j':param.j_cutrange, 'h':param.h_cutrange, 'k':param.k_cutrange
-                    }
         for f1 in inlist:
-            crange = cutrange[inlist[0]]
             f2 = re.sub(r'.fits', '_cut.fits', f1)
             f3 = f1+crange
+            f4 = os.path.join(path_to_outdir, f2)
             fin.write(f3 + '\n')
-            fout.write(f2 + '\n')
+            fout.write(f4 + '\n')
             print('imcopy', f1, crange, f2)
     
     iraf.imcopy(input='@_inlist', output='@_outlist', Stdout=1)
@@ -128,43 +120,6 @@ def imstat(inlist, method):
     return iraf.imstatistics('@_inlist', Stdout=1)
 
 
-def skystat(fitsname, method, nclip=3, clip_threshold=3):
-    
-    data = fits.getdata(fitsname)
-    flat_data = data.flatten()
-    threshold = np.percentile(flat_data, 100)
-    backgroud_data = flat_data[flat_data <= threshold]
-    mode_value, count = mode(backgroud_data)
-    median_value = np.median(backgroud_data)
-
-    if method == 'mode':
-        return mode_value
-    
-    if method == 'mode,stddev':
-        basis_value = mode_value
-    elif method == 'median,stddev':
-        basis_value = median_value
-    else:
-        basis_value = median_value
-
-    for num in range(nclip):
-        squared_diffs = (backgroud_data - basis_value) ** 2
-        mean_squared_diff = np.mean(squared_diffs)
-        rms_from_mode = np.sqrt(mean_squared_diff)
-        lower_bound = basis_value - clip_threshold * rms_from_mode
-        upper_bound = basis_value + clip_threshold * rms_from_mode
-        backgroud_data = backgroud_data[(backgroud_data >= lower_bound) & (backgroud_data <= upper_bound)]
-    skyrms = rms_from_mode
-    print('うおおおおおおおおおおおお', basis_value, skyrms)
-
-    if method == 'stddev':
-        return skyrms
-    elif method == 'median':
-        return median_value
-    elif method == 'mode,stddev':
-        return basis_value, skyrms
-    elif method == 'median,stddev':
-        return basis_value, skyrms
 
 
 def combine(inlist, outname, method, reject='sigclip'):
@@ -211,7 +166,12 @@ def daofind(inputf, outputf, fwhm, threshold=5 ):
     iraf.digiphot(Stdout=1)
     iraf.apphot(Stdout=1)
 
-    mode, stddev = skystat(inputf, 'mode,stddev')
+    iraf.imstatistics.unlearn()
+    iraf.imstatistics.fields = 'mode,stddev'
+    iraf.imstatistics.nclip = 5
+    iraf.imstatistics.format = 'No'
+    result = iraf.imstatistics(inputf, Stdout=1)
+    mode, stddev = result[0].split()
 
     iraf.apphot.datapars.scale = 0.692
     iraf.apphot.datapars.fwhmpsf = fwhm
@@ -261,12 +221,11 @@ def psfmeasure(inputf):
     iraf.obsutil(Stdout=1)
     iraf.psfmeasure.unlearn()
     iraf.psfmeasure.coords = 'center'
-    iraf.psfmeasure.scale = 0.69
     iraf.psfmeasure.display = 'No'
     iraf.psfmeasure.logfile = ''
     iraf.psfmeasure.mode = 'h'
     
-    return iraf.psfmeasure(inputf, Stdout=1)
+    return iraf.psfmeasure(inputf, Stdout=1, Stderr='errrrrrrrrrr.txt')
 
 
 
@@ -474,4 +433,4 @@ def phot(fitsname, fwhm, sigma):
 
 if __name__ == '__main__':
 	
-	print('bottom.py is a module.')
+	print('bottom.py is a module repository.')

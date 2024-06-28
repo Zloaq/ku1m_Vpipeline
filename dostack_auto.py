@@ -220,10 +220,25 @@ def domethod1(inlist, fwhms, threshold, param):
 		outlist[fwhm] = []
 		for i2 in inlist:
 			outlist[fwhm].append(i2[:14]+'_' +str(fwhm)+'.coo')
-
+			
+	stddevlist1 = bottom.imstat(inlist, 'stddev')
+	hdulist = [fits.getheader(file, ext=0) for file in inlist]
+	medlist = [float(hdu['MEDIAN']) for hdu in hdulist]
 	
-	for fwhm in fwhms:
-		daofind_list(inlist, outlist[fwhm], fwhm, threshold)
+	if param.multi == 1:
+		process1 = []
+		for fwhm in fwhms:
+			p = multiprocessing.Process(
+			target=daofind_list, args=(inlist, outlist[fwhm], fwhm, threshold)
+			)
+			process1.append(p)
+			p.start()
+		for p in process1:
+			p.join()
+
+	elif param.multi == 0:
+		for fwhm in fwhms:
+			daofind_list(inlist, outlist[fwhm], fwhm, threshold)
 	
 	xcen_counter = {}
 	
