@@ -478,6 +478,7 @@ if __name__ == '__main__':
 	if argc == 1:
 		print('usage1 ./main.py [OBJECT file name] ')
 		print('usage2 ./main.py [object name][YYMMDD]')
+		sys.exit()
 
 	if argvs[1] == 'init':
 		print('init')
