@@ -17,11 +17,9 @@
 2  
     main.param の中では、5 で使用する、
     YYMMDD, '任意のobject名' がそれぞれ、{date}, {objectname} として使用可能です。
-
     objfile_dir は '任意のobject名' ファイルを作成するディレクトリを指定します。
     rawdata_dir は 未処理の画像が保存されているディレクトリを指定します。
     work_dir は 処理が行われるディレクトリを指定します。
-
     quicklook は実装されていません。
     flatdiv はフラットで割る作業をします。
 
@@ -38,7 +36,7 @@
 
 5
    一番気になっているのは maxstarnum と minstarnum です。
-   それぞれ、計算に時間がかかる時 と マッチできない時 に変えます。
+   それぞれ、match の計算に時間がかかる時 と match できない時 に変えます。
    
 6 
    YYYYMMDD でも行けるといいな
