@@ -11,7 +11,7 @@ import numpy as np
 from astropy.io import fits
 from pyraf import iraf
 
-import download
+#import download
 import bottom
 import flat_sky
 import starmatch # type: ignore
