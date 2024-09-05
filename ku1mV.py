@@ -18,6 +18,58 @@ import starmatch # type: ignore
 import comb_phot as com_p
 
 
+def do_init():
+
+	home_dir = os.path.expanduser("~")
+		
+	new_dir1 = os.path.join(home_dir, 'ku1mV')
+	new_dir2 = os.path.join(new_dir1, 'optcam')
+	new_dir3 = os.path.join(new_dir1, 'kSIRIUS')
+	new_dir4 = os.path.join(new_dir1, 'object')
+	new_dir5 = os.path.join(new_dir1, 'workdir')
+
+	dirs_to_create = [new_dir1, new_dir2, new_dir3, new_dir4, new_dir5]
+	
+	for directory in dirs_to_create:
+		if not os.path.exists(directory):
+			os.makedirs(directory)
+			print(f"Created directory: {directory}")
+		else:
+			print(f"Directory already exists: {directory}")
+
+	path_program = os.path.abspath(__file__)
+	dir_of_program = os.path.dirname(path_program)
+	file_path = os.path.join(dir_of_program, 'main.param')
+
+	paramlist = {
+    'objfile_dir': f'\'{new_dir4}\'',
+    'rawdata_infra': f'\'{os.path.join(new_dir3, "{date}")}\'',
+    'rawdata_opt': f'\'{os.path.join(new_dir2, "{date}")}\'',
+    'work_dir': f'\'{os.path.join(new_dir5, "{objectname}", "{date}")}\''
+	}
+
+	with open(file_path, 'r') as file:
+		lines = file.readlines()
+
+	updated_lines = []
+	for line in lines:
+		param_name = line.split(maxsplit=1)[0]
+		
+		if param_name in paramlist:
+			new_value = f"{paramlist[param_name]}"
+			updated_line = f"{param_name:<16}'{new_value}'\n"
+			updated_lines.append(updated_line)
+		else:
+
+			updated_lines.append(line)
+
+	with open(file_path, 'w') as file:
+		file.writelines(updated_lines)
+
+	print(f"パラメータファイル {file_path} を更新しました。")
+	sys.exit()
+
+
 class readparam():
 
 	def __init__(self, date, objectname):
@@ -429,7 +481,7 @@ if __name__ == '__main__':
 
 	if argvs[1] == 'init':
 		print('init')
-		sys.exit()
+		do_init()
 
 	if argc == 2:
 		#object ファイルの生成

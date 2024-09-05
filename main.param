@@ -7,20 +7,24 @@ work_dir        '/Users/motomo/iriki/workdir/{objectname}/{date}'
 
 #----------flat_sky_param------------
 quicklook       0
+
 flatdiv         0
+
 cut             1
+
 gflip           1
+
 sub_skylev      1
 div_skylev      0
 custom_skylev   0
+
 skysub          1
-#----------dostack_param------------
+#----------starmatch_param------------
+
 starmatch       1
-georotate       0
-xyshift         0
-opt_base       'g'
-inf_base       'g'
+
 #----------comb_phot_param----------
+
 comb_per_set    1
 comb_all        0
 aperture_phot   0
