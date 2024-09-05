@@ -1,4 +1,4 @@
-#!/Users/motomo/opt/anaconda3/bin/python3
+#!/opt/anaconda3/envs/p11/bin/python3
 
 import pexpect
 import os
@@ -52,3 +52,8 @@ def sort(obnamelist, obname):
 			break
 	
 	return index1, index2
+
+
+if __name__ == '__main__':
+	
+	download()

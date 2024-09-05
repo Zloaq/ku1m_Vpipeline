@@ -1,4 +1,4 @@
-#!/Users/motomo/opt/anaconda3/bin/python3
+#!/opt/anaconda3/envs/p11/bin/python3
 
 import os
 import sys
@@ -14,7 +14,7 @@ from pyraf import iraf
 import download
 import bottom
 import flat_sky
-import dostack_auto as dos_a
+import starmatch # type: ignore
 import comb_phot as com_p
 
 
@@ -29,26 +29,34 @@ class readparam():
 		if not os.access(dir1, os.R_OK):
 			print('main.param is not found')
 			sys.exit()
+		if not os.access(dir2, os.R_OK):
+			print('advanced.param is not found')
+			sys.exit()
 
 		with open(dir1) as f1, open(dir2) as f2:
 			lines = f1.readlines() + f2.readlines()
-			for line in lines:
-				if line.startswith('#') or line.strip() == '':
-					continue
-				varr = line.split()
-				items = ''
-				if varr[1].startswith('\'') or varr[1].startswith('\"'):
+		for line in lines:
+			if line.startswith('#') or line.strip() == '':
+				continue
+			varr = line.split()
+			if len(varr)==1:
+				print(f'param of {varr[0]} is none.')
+				continue
+
+			items = ''
+			if varr[1].startswith(('\'', '\"', '(')):
 #					varr[1] = varr[1].replace('\'', '', 1)
-					for index, item in enumerate(varr[1:]):
-						if item.endswith('\'') or item.endswith('\"'):
+				for index, item in enumerate(varr[1:]):
+					if item.endswith(('\'', '\"', ')')):
 #							item = item.replace('\'', '', 1)
-							items = items + item
-							varr[1] = items
-							break
-						items = items + item + ' '
-				if '{' in varr[1]:
-					varr[1] = varr[1].format(date = date, objectname = objectname)
-				exec("self." + varr[0] + " = " + varr[1])
+						items = items + item
+						varr[1] = items
+						break
+					items = items + item + ' '
+			
+			varr[1] = varr[1].replace("{date}", date)
+			varr[1] = varr[1].replace("{objectname}", objectname)
+			exec(f'self.{varr[0]} = {varr[1]}')
 				
 
 class readobjfile():
@@ -107,24 +115,6 @@ class readobjfile():
 					f3.write(coo)
 					f3.write('\n')
 
-'''
-				paramlist = []
-				for parampart in linelist[1:]:
-					if parampart.startswith('#'):
-						break
-					paramlist.append(parampart)
-
-				if len(paramlist) == 0:
-					continue
-				if linelist[0] == 'SearchName':
-					self.linelist[0] = []
-					for parampart in paramlist:
-						exec("self." + linelist[0] + ".append(" + parampart + ")")
-
-				elif len(paramlist) == 1:
-					exec("self." + linelist[0] + " = " + paramlist[0])
-'''
-
 
 class readlog():
 	
@@ -161,7 +151,6 @@ class readheader():
         self.offsetra = []
         self.offsetde = []
         self.offsetro = []
-        self.focus = []
         self.azimuth = []
         self.altitude = []
         self.rotator = []
@@ -170,7 +159,7 @@ class readheader():
             
             hdu = fits.open(f1)
             self.object.append(hdu[0].header['OBJECT'])
-            self.exptime.append(hdu[0].header['EXPTIME'])
+            self.exptime.append(hdu[0].header.get('EXPTIME') or hdu[0].header.get('EXP_TIME'))
             self.jd.append(hdu[0].header['JD'])
             self.mjd.append(hdu[0].header['MJD'])
             self.ra.append(hdu[0].header['RA'])
@@ -179,7 +168,6 @@ class readheader():
             self.offsetra.append(hdu[0].header['OFFSETRA'])
             self.offsetde.append(hdu[0].header['OFFSETDE'])
             self.offsetro.append(hdu[0].header['OFFSETRO'])
-            self.focus.append(hdu[0].header['FOCUS'])
             self.azimuth.append(hdu[0].header['AZIMUTH'])
             self.altitude.append(hdu[0].header['ALTITUDE'])
             self.rotator.append(hdu[0].header['ROTATOR'])
@@ -228,19 +216,22 @@ def glob_latestproc(bands, fitspro):
 		key = '_' + i + key
 	for band in bands:
 		search_pattern = f'{band}*{key}'
-		fitslist += glob.glob(search_pattern)
+		fitslist.extend(glob.glob(search_pattern))
 	fitslist.sort()
-
 	return fitslist
 
-
-def add_latestproc(inlist):
-	
-	outlist = []
-	for i in inlist():
-		i.split('_')
-		outlist.append(re.sub(r'.fits'))
-
+def glob_latestproc2(bands, fitspro):
+	fitslist = {}
+	key = '.fits'
+	for i in fitspro[::-1]:
+		key = '_' + i + key
+	for band in bands:
+		search_pattern = f'{band}*{key}'
+		fitslist[band] = glob.glob(search_pattern)
+		fitslist[band].sort()
+		if not fitslist[band]:
+			del fitslist[band]
+	return fitslist
 	
 
 def write_log(filename, paramdict):
@@ -320,27 +311,44 @@ def make_objfile(objectname, param):
 		
 
 
-def execute_code(param, objparam, log, bands='jhk'):
+def execute_code(param, objparam, log, bands='gijhk'):
 	
 	bottom.setparam()
 	if log.log == 'exits':
 		fitspro = log.fitspro
 	else:
 		fitspro = []
-		fitslist = []
-		obnamelist = []
+		fitslist = {}
+		obnamelist = {}
 		subprocess.run(f'rm {param.work_dir}/*.fits', shell=True)
-		if 'j' or 'h' or 'k' in bands:
+		if any(varr in bands for varr in ['j', 'h', 'k']):
 			iraf.chdir(param.rawdata_infra)
-			fitslist = glob.glob('*.fits')
-			fitslist, obnamelist += match_object(fitslist, objparam.SearchName)
-		if 'g' or 'i' in bands:
+			globlist = glob.glob('*.fits')
+			for fitsname in globlist:
+				band = fitsname[0]
+				if band not in fitslist:
+					fitslist[band] = []
+				fitslist[band].append(fitsname)
+			for band1 in fitslist:
+				if band1 in ['j', 'h', 'k']:
+					fitslist[band1], obnamelist[band1] = match_object(fitslist[band1], objparam.SearchName)
+					for varr in fitslist[band1]:
+						shutil.copy(varr, param.work_dir)
+		
+		if any(varr in bands for varr in ['g', 'i']):
 			iraf.chdir(param.rawdata_opt)
-			fitslist = glob.glob('*.fits')
-			fitslist, obnamelist += match_object(fitslist, objparam.SearchName)
-		for file_name in fitslist:
-			shutil.copy(file_name, param.work_dir)
-	
+			globlist = glob.glob('*.fits')
+			for fitsname in globlist:
+				band = fitsname[0]
+				if band not in fitslist:
+					fitslist[band] = []
+				fitslist[band].append(fitsname)
+			for band1 in fitslist:
+				if band1 in ['g', 'i']:
+					fitslist[band1], obnamelist[band1] = match_object(fitslist[band1], objparam.SearchName)
+					for varr in fitslist[band1]:
+						shutil.copy(varr, param.work_dir)
+		
 	iraf.chdir(param.work_dir)
 
 	if param.quicklook == 1:
@@ -356,24 +364,29 @@ def execute_code(param, objparam, log, bands='jhk'):
 	
 	if param.cut == 1:
 		fitslist = glob_latestproc(bands, fitspro)
-		bottom.cut_copy(fitslist, param)
+		bottom.cut(fitslist, param)
 		fitspro.append('cut')
 
-	if param.skylevsub == 1:
+	if param.gflip == 1:
+		fitslist = glob_latestproc2(bands, fitspro)
+		bottom.xflip(fitslist['g'])
+
+
+	if param.sub_skylev == 1:
 		fitslist = glob_latestproc(bands, fitspro)
 		flat_sky.method2_1(fitslist)
 		fitspro.append('lev')
-	elif param.yskylevsub == 1:
+	elif param.div_skylev == 1:
 		fitslist = glob_latestproc(bands, fitspro)
 		flat_sky.method2_2(fitslist)
 		fitspro.append('ylev')
-	elif param.skylevsub == 1 and param.yskylevsub == 1:
+	elif param.sub_skylev == 1 and param.div_skylev == 1:
 		fitslist = glob_latestproc(bands, fitspro)
 		flat_sky.method2_1(fitslist)
 		fitspro.append('lev')
 	elif param.custom_skylev == 1:
 		fitslist = glob_latestproc(bands, fitspro)
-		print('yetyetyet')
+		print('custom_skylev yetyetyet')
 		sys.exit()
 		
 	if param.skysub == 1:
@@ -384,17 +397,15 @@ def execute_code(param, objparam, log, bands='jhk'):
 		flat_sky.method4(fitslist, header.object)
 		fitspro.append('sky')
 		
-	if param.dostack == 1:
-		fitslist = glob_latestproc(param.dostack_base, fitspro)
-		header = readheader(fitslist)
-		dos_a.dostack_main(fitslist, param)
-		fitspro.append('geo')
+	if param.starmatch == 1:
+		fitslist = glob_latestproc2(bands, fitspro)
+		starmatch.main(fitslist, param)
+		fitspro.append('geo*')
 
 
 	if param.comb_per_set == 1:
-		print('combs')
-		fitslist = glob_latestproc(bands, fitspro)
-		com_p.comb_pset(fitslist, argvs[1], argvs[2])
+		fitslist = glob_latestproc2(bands, fitspro)
+		com_p.comb_pset(fitslist)
 
 	if param.comb_all == 1:
 		print('comb_all')
@@ -412,7 +423,13 @@ if __name__ == '__main__':
 	argc = len(argvs)
 	fitspro = []
 	
-	print(argc)
+	if argc == 1:
+		print('usage1 ./main.py [OBJECT file name] ')
+		print('usage2 ./main.py [object name][YYMMDD]')
+
+	if argvs[1] == 'init':
+		print('init')
+		sys.exit()
 
 	if argc == 2:
 		#object ファイルの生成
@@ -422,20 +439,20 @@ if __name__ == '__main__':
 		make_objfile(argvs[1], param)
 	
 	elif argc == 3:
-		param = readparam(argvs[1], argvs[2])
-		objparam = readobjfile(param, argvs[2])
+		param = readparam(argvs[2], argvs[1])
+		objparam = readobjfile(param, argvs[1])
 
 		path = os.path.join(param.work_dir)
 		os.makedirs(path, exist_ok=True)
 		iraf.chdir(path)
 		log = readlog('log.txt')
-		execute_code(param, objparam, log)
+		execute_code(param, objparam, log, 'gijhk')
 
 	elif argc == 4:
 		print('yetyetyet, only jhk')
 		sys.exit()
-		param = readparam(argvs[1], argvs[2])
-		objparam = readobjfile(param, argvs[2])
+		param = readparam(argvs[2], argvs[1])
+		objparam = readobjfile(param, argvs[1])
 
 		path = os.path.join(param.work_dir)
 		os.makedirs(path, exist_ok=True)
@@ -445,4 +462,4 @@ if __name__ == '__main__':
 	
 	else:
 		print('usage1 ./main.py [OBJECT file name] ')
-		print('usage2 ./main.py [YYMMDD][object name]')
+		print('usage2 ./main.py [object name][YYMMDD]')

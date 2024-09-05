@@ -1,37 +1,31 @@
-#!/Users/motomo/opt/anaconda3/bin/python3
+#!/opt/anaconda3/envs/p11/bin/python3
 
 import os
 import sys
 import re
+from tqdm import tqdm
 
 from astropy.io import fits
 
 import bottom
-import dostack_auto
+#import dostack_auto
 
 
 
-def comb_pset(fitslist, day, obname):
+def comb_pset(fitslist):
     #自分の好きなobject の名前を反映させる。2024/06/12
-
-    header = bottom.readheader(fitslist)
-    unique_band = set(header.band)
-    unique_obname = set(header.object)
-    uni_band = list(unique_band)
-    uni_obname = list(unique_obname)
-
-
     sep_bandset = {}
-    for band in uni_band:
-        for obname in uni_obname:
-            sep_bandset[band+obname] = [f'{band}{day}_{obname}.fits']
-    for index, fitsname in enumerate(fitslist):
-        band = header.band[index]
-        obname = header.object[index]
-        sep_bandset[band+obname].append(fitsname)
-    
-    for key in sep_bandset:
-        bottom.combine(sep_bandset[key][1:], sep_bandset[key][0], 'average')
+    for band in fitslist:
+        header = bottom.readheader(fitslist[band])
+        for filename, obname in zip(header.filename, header.object):
+            if f'{filename[:7]}-{obname}' not in sep_bandset:
+                sep_bandset[f'{filename[:7]}-{obname}'] = []
+            sep_bandset[f'{filename[:7]}-{obname}'].append(filename)
+
+    for nameid in tqdm(sep_bandset, desc='{:<13}'.format("combine")):
+        #print(f'{nameid}\n{sep_bandset[nameid]}')
+        outname = f'{nameid}.fits'
+        bottom.combine(sep_bandset[nameid], outname, 'average')
 
 
 def comb_all(fitslist, day, obname):
@@ -50,7 +44,7 @@ def comb_all(fitslist, day, obname):
     for key in sep_band:
         bottom.combine(sep_band[key][1:], sep_band[key][0], 'average')
 
-
+"""
 def match_star_coords(fitslist, refcoofile, fwhms=[3, 4, 5]):
     print('match')
     # Reference_bands.coo
@@ -76,7 +70,7 @@ def match_star_coords(fitslist, refcoofile, fwhms=[3, 4, 5]):
             if not starnum[fwhm]:
                 print(f'no star {fitsname} fwhm={fwhm}')
                 break
-
+"""
 
 
 def phot(fitslist, coordslist, fwhm):

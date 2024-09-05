@@ -1,4 +1,4 @@
-#!/Users/motomo/opt/anaconda3/bin/python3
+#!/opt/anaconda3/envs/p11/bin/python3
 
 import os
 import sys

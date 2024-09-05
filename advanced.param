@@ -1,13 +1,41 @@
 
-#----------cut_param------------
+#--------relative_position----------
+
+##(base_band)-(move_band)
+
+#j-h
+jcoo_to_h       (170.3354187011719, 134.3800201416016)
+hcoo_to_j       (169.2156524658203, 119.11328125)
+theta_jh        0.1318819
+
+#j-k
+jcoo_to_k       (180.9359130859375, 132.6917419433594)
+kcoo_to_j       (159.6997680664062, 123.1698760986328)
+theta_jk        359.9639
+
+#h-k
+hcoo_to_k       (179.7449645996094, 119.2510070800781)
+kcoo_to_h       (159.8890838623047, 125.0084381103516)
+theta_hk        0.1746
+
+          
+#--------saturation_count-----------
+
+g_satcount      38000
+i_satcount      38000
+j_satcount      10000
+h_satcount      10000
+k_satcount      9000
+
+#--------cut_param------------------
 
 g_cutrange      '[15:1029,15:1017]'
 i_cutrange      '[15:1029,15:1017]'
-j_cutrange      '[9:328,9:264]'
-h_cutrange      '[9:328,9:264]'
-k_cutrange      '[9:328,9:264]'
+j_cutrange      '[9:328,10:265]'
+h_cutrange      '[9:328,10:265]'
+k_cutrange      '[9:328,10:265]'
 
-#----------skylevel------------
+#--------skylevel-------------------
 
 # MEDIAN ==> 1, MODE ==> 2
 
@@ -25,4 +53,40 @@ j_skyfit        1
 h_skyfit        1
 k_skyfit        1
 
-#----------download_param------------
+#---------starfind-------------------
+
+g_maxstarnum    40
+i_maxstarnum    40
+j_maxstarnum    25
+h_maxstarnum    25
+k_maxstarnum    25
+
+g_minstarnum    20
+i_minstarnum    20
+j_minstarnum    20
+h_minstarnum    20
+k_minstarnum    20
+
+
+#--------geotran_base-------------------
+
+tran_g          'g'
+tran_i          'i'
+tran_j          'j'
+tran_h          'h'
+tran_k          'k'
+
+#--------download_param------------
+
+#--------pixel_scale-----------------
+
+pixscale_g      0.6
+pixscale_i      0.6
+pixscale_j      0.69
+pixscale_h      0.69
+pixscale_k      0.69
+
+#--------geotran_rotate_limit--------------
+
+l_rotate        10
+h_rotate        350
