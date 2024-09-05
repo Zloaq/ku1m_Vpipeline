@@ -42,10 +42,10 @@ def do_init():
 	file_path = os.path.join(dir_of_program, 'main.param')
 
 	paramlist = {
-    'objfile_dir': f'\'{new_dir4}\'',
-    'rawdata_infra': f'\'{os.path.join(new_dir3, "{date}")}\'',
-    'rawdata_opt': f'\'{os.path.join(new_dir2, "{date}")}\'',
-    'work_dir': f'\'{os.path.join(new_dir5, "{objectname}", "{date}")}\''
+    'objfile_dir': f'{new_dir4}',
+    'rawdata_infra': f'{os.path.join(new_dir3, "{date}")}',
+    'rawdata_opt': f'{os.path.join(new_dir2, "{date}")}',
+    'work_dir': f'{os.path.join(new_dir5, "{objectname}", "{date}")}'
 	}
 
 	with open(file_path, 'r') as file:
@@ -53,14 +53,17 @@ def do_init():
 
 	updated_lines = []
 	for line in lines:
-		param_name = line.split(maxsplit=1)[0]
+		try:
+			param_name = line.split(maxsplit=1)[0]
+		except:
+			updated_lines.append(line)
+			continue
 		
 		if param_name in paramlist:
 			new_value = f"{paramlist[param_name]}"
 			updated_line = f"{param_name:<16}'{new_value}'\n"
 			updated_lines.append(updated_line)
 		else:
-
 			updated_lines.append(line)
 
 	with open(file_path, 'w') as file:
