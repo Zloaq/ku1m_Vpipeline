@@ -396,7 +396,7 @@ def lnum_match(inputf, referancef, outputf, rotatediff=0): # 変な画像があ�
         matched_coo = match_segments(inpseg, refseg)
     # write .match
 
-    if matched_coo == []:
+    if matched_coo.size == 0:
         return None
 
     with open(outputf, 'w') as f1:
