@@ -377,8 +377,13 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		obnamelist = {}
 		subprocess.run(f'rm {param.work_dir}/*.fits', shell=True)
 		if any(varr in bands for varr in ['j', 'h', 'k']):
-			iraf.chdir(param.rawdata_infra)
-			globlist = glob.glob('*.fits')
+			try:
+				iraf.chdir(param.rawdata_infra)
+				globlist = glob.glob('*.fits')
+			except:
+				print(f'{param.rawdata_inf} is not exists.')
+				globlist = []
+				
 			for fitsname in globlist:
 				band = fitsname[0]
 				if band not in fitslist:
@@ -391,8 +396,13 @@ def execute_code(param, objparam, log, bands='gijhk'):
 						shutil.copy(varr, param.work_dir)
 		
 		if any(varr in bands for varr in ['g', 'i']):
-			iraf.chdir(param.rawdata_opt)
-			globlist = glob.glob('*.fits')
+			try:
+				iraf.chdir(param.rawdata_opt)
+				globlist = glob.glob('*.fits')
+			except:
+				print(f'{param.rawdata_opt} is not exists.')
+				globlist = []
+			
 			for fitsname in globlist:
 				band = fitsname[0]
 				if band not in fitslist:
@@ -403,7 +413,7 @@ def execute_code(param, objparam, log, bands='gijhk'):
 					fitslist[band1], obnamelist[band1] = match_object(fitslist[band1], objparam.SearchName)
 					for varr in fitslist[band1]:
 						shutil.copy(varr, param.work_dir)
-						
+
 	keys_to_remove = [key for key in fitslist if not fitslist[key]]
 	for key in keys_to_remove:
 		del fitslist[key]

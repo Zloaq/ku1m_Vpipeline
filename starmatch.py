@@ -143,9 +143,9 @@ def starfind_center3(fitslist, param, searchrange=[3.0, 5.0, 0.2], minstarnum=0,
     #print(f'{band} band threshold range = {searchrange}')
 
     #for index, filename in enumerate(tqdm(fitslist, desc=f'{fitslist[0][0]} band starfind')):
+    iterate = 0
+    searchrange0 = searchrange
     with tqdm(total=len(fitslist), desc=f'{fitslist[0][0]} band starfind') as pbar:
-        iterate = 0
-        searchrange0 = searchrange
         while iterate <= len(fitslist) - 1:
             filename = fitslist[iterate]
             data = fits.getdata(filename)
@@ -164,7 +164,6 @@ def starfind_center3(fitslist, param, searchrange=[3.0, 5.0, 0.2], minstarnum=0,
             rms = bottom.skystat(filename, 'stddev')
 
             while searchrange0[0] >= 2.0:
-                #print(f'{}')
                 center_list = []
                 for threshold in np.arange(searchrange0[0], searchrange0[1], searchrange0[2]):
                     binarized_data = binarize_data(data, threshold, rms)
@@ -181,7 +180,7 @@ def starfind_center3(fitslist, param, searchrange=[3.0, 5.0, 0.2], minstarnum=0,
                 coordsfile = re.sub('.fits', '.coo', filename)
                 bottom.center(filename, coordsfile, 'temp.coo')
                 starnum, file = chose_unique_coords(coordsfile)
-                if starnum < minstarnum:
+                if (starnum < minstarnum) & (searchrange0[0] > 2.0):
                     #print(f'retry starfind')
                     searchrange0[0] -= 1
                     searchrange0[1] -= 1
@@ -397,6 +396,7 @@ def lnum_match(inputf, referancef, outputf, rotatediff=0): # 変な画像があ�
     # write .match
 
     if matched_coo.size == 0:
+        print()
         return None
 
     with open(outputf, 'w') as f1:
@@ -548,6 +548,9 @@ def do_starfind(fitslist, param, optkey, infrakey):
         maxstarnum = maxstar[fitslist0[0][0]]
         threshold_range = [l_threshold, h_threshold, interval]
         starnumlist, coordsfilelist, index0 = starfind_center3(fitslist0, param, threshold_range, minstarnum, maxstarnum)
+
+        #print(f'starnumlist\n{starnumlist}')
+        #print(f'coordsflelist\n{coordsfilelist}')
 
         return starnumlist, coordsfilelist
 
