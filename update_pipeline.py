@@ -64,4 +64,4 @@ if __name__ == "__main__":
 
     restore_directory_names(param_file, saved_dir_names)
 
-    print("Update completed and directory names restored.")
+    print("Update completed")
