@@ -422,10 +422,11 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		bottom.cut(fitslist, param)
 		fitspro.append('cut')
 
+
 	if param.gflip == 1:
 		fitslist = glob_latestproc2(bands, fitspro)
-		bottom.xflip(fitslist['g'])
-
+		if 'g' in fitslist:
+			bottom.xflip(fitslist['g'])
 
 	if param.sub_skylev == 1:
 		fitslist = glob_latestproc(bands, fitspro)
