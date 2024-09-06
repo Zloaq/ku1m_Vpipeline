@@ -481,11 +481,9 @@ def geotparam(param, file_list):
                 geotp['yshift']=float(line_list[1])
         
             elif 'xrotation' in line:
-                if param.h_rotate < float(line_list[1]) or float(line_list[1]) < param.l_rotate:
-                    geotp['xrotation']=float(line_list[1])
+                geotp['xrotation']=float(line_list[1])
             elif 'yrotation' in line:
-                if param.h_rotate < float(line_list[1]) or float(line_list[1]) < param.l_rotate:
-                    geotp['yrotation']=float(line_list[1])
+                geotp['yrotation']=float(line_list[1])
         
         if len(geotp) != 10:
             continue
