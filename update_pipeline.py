@@ -16,6 +16,14 @@ def save_directory_names(file_path):
     return dir_names
 
 
+def save_shebang(file_path):
+    with open(file_path, 'r') as file:
+        first_line = file.readline().strip()
+        if first_line.startswith('#!'):
+            return first_line
+    return None
+
+
 def git_pull():
     try:
         print("Pulling the latest updates from the repository...")
@@ -47,6 +55,10 @@ if __name__ == "__main__":
     param_file = os.path.join(dir_of_program, 'main.param')
 
     saved_dir_names = save_directory_names(param_file)
+
+    shebang = save_shebang(path_program)
+    comm = os.path.join(dir_of_program, 'ch_shebang.sh')
+    subprocess.run([comm, shebang])
 
     git_pull()
 

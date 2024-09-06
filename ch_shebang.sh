@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# 使用法: ./update_shebang.sh path_to_python_script
-
-
-
-PYTHON_PATH=$(which python3)
+if [ $# -eq 0 ]; then
+    PYTHON_PATH=$(which python3)
+else
+    PYTHON_PATH="$1"
+fi
 
 SCRIPT_PATH=($(ls |grep py\$))
 
