@@ -58,6 +58,7 @@ if __name__ == "__main__":
 
     shebang = save_shebang(path_program)
     print(path_program)
+    print(f'shebang={shebang}')
     comm = os.path.join(dir_of_program, 'ch_shebang.sh')
     git_pull()
     subprocess.run([comm, shebang], stdout=subprocess.DEVNULL)
