@@ -33,7 +33,7 @@ def restore_directory_names(file_path, dir_names):
         for line in lines:
             key = line.split(maxsplit=1)[0] if line.strip() else ""
             if key in dir_names:
-                file.write(f"{key} {dir_names[key]}\n")
+                file.write(f"{key:<16}{dir_names[key]}\n")
             else:
                 file.write(line)
 
