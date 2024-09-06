@@ -57,10 +57,10 @@ if __name__ == "__main__":
     saved_dir_names = save_directory_names(param_file)
 
     shebang = save_shebang(path_program)
+    print(path_program)
     comm = os.path.join(dir_of_program, 'ch_shebang.sh')
-    subprocess.run([comm, shebang], stdout=subprocess.DEVNULL)
-
     git_pull()
+    subprocess.run([comm, shebang], stdout=subprocess.DEVNULL)
 
     restore_directory_names(param_file, saved_dir_names)
 
