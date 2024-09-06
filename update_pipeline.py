@@ -19,6 +19,8 @@ def save_directory_names(file_path):
 def git_pull():
     try:
         print("Pulling the latest updates from the repository...")
+        result = subprocess.run(['git', 'reset', '--hard'], check=True, text=True, capture_output=True)
+        print(result.stdout)  # git pull の結果を表示
         result = subprocess.run(['git', 'pull'], check=True, text=True, capture_output=True)
         print(result.stdout)  # git pull の結果を表示
     except subprocess.CalledProcessError as e:
