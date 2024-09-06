@@ -20,7 +20,7 @@ def save_shebang(file_path):
     with open(file_path, 'r') as file:
         first_line = file.readline().strip()
         if first_line.startswith('#!'):
-            return first_line
+            return first_line[2:]
     return None
 
 
