@@ -479,8 +479,8 @@ if __name__ == '__main__':
 	fitspro = []
 	
 	if argc == 1:
-		print('usage1 ./main.py [OBJECT file name] ')
-		print('usage2 ./main.py [object name][YYMMDD]')
+		print('usage1 ./ku1mV.py [OBJECT file name] ')
+		print('usage2 ./ku1mV.py [object name][YYMMDD]')
 		sys.exit()
 
 	if argvs[1] == 'init':
@@ -517,5 +517,5 @@ if __name__ == '__main__':
 		execute_code(param, objparam, log, argvs[3])
 	
 	else:
-		print('usage1 ./main.py [OBJECT file name] ')
-		print('usage2 ./main.py [object name][YYMMDD]')
+		print('usage1 ./ku1mV.py [OBJECT file name] ')
+		print('usage2 ./ku1mV.py [object name][YYMMDD]')
