@@ -603,7 +603,11 @@ def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
     opt_matchedf = {}
     inf_matchedf = {}
 
-    optcommon = set(s[1:-4] for s in optcoolist[next(iter(optcoolist))])
+    if optcoolist:
+        optcommon = set(s[1:-4] for s in optcoolist[next(iter(optcoolist))])
+    else:
+        optcommon = set()
+
     optbase   = sorted(optcommon)[0]
 
     for varr in optcoolist:
@@ -630,7 +634,11 @@ def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
             opt_matchbase[varr] = optcommon
             opt_match[varr] = 0
 
-    infcommon = set(s[1:-4] for s in infcoolist[next(iter(infcoolist))])
+    if infcoolist:
+        infcommon = set(s[1:-4] for s in infcoolist[next(iter(infcoolist))])
+    else:
+        infcommon = set()
+        
     infbase   = sorted(infcommon)[0]
     #print(f'infcommon = {infcommon}')
 
