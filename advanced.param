@@ -87,7 +87,3 @@ pixscale_j      0.69
 pixscale_h      0.69
 pixscale_k      0.69
 
-#--------geotran_rotate_limit--------------
-
-l_rotate        10
-h_rotate        350
