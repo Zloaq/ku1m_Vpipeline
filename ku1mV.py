@@ -403,7 +403,12 @@ def execute_code(param, objparam, log, bands='gijhk'):
 					fitslist[band1], obnamelist[band1] = match_object(fitslist[band1], objparam.SearchName)
 					for varr in fitslist[band1]:
 						shutil.copy(varr, param.work_dir)
-		
+						
+	keys_to_remove = [key for key in fitslist if not fitslist[key]]
+	for key in keys_to_remove:
+		del fitslist[key]
+	bands = list(fitslist.keys())
+
 	iraf.chdir(param.work_dir)
 
 	if param.quicklook == 1:
