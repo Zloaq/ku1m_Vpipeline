@@ -605,10 +605,11 @@ def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
 
     if optcoolist:
         optcommon = set(s[1:-4] for s in optcoolist[next(iter(optcoolist))])
+        optbase   = sorted(optcommon)[0]
     else:
         optcommon = set()
 
-    optbase   = sorted(optcommon)[0]
+    
 
     for varr in optcoolist:
         if optcoolist[varr] and min(optstarlist[varr]) > 3:
@@ -636,10 +637,11 @@ def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
 
     if infcoolist:
         infcommon = set(s[1:-4] for s in infcoolist[next(iter(infcoolist))])
+        infbase   = sorted(infcommon)[0]
     else:
         infcommon = set()
-        
-    infbase   = sorted(infcommon)[0]
+
+    
     #print(f'infcommon = {infcommon}')
 
     for varr in infcoolist:
