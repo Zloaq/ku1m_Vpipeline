@@ -163,6 +163,7 @@ def starfind_center3(fitslist, param, searchrange=[3.0, 5.0, 0.2], minstarnum=0,
             
             rms = bottom.skystat(filename, 'stddev')
 
+            roopnum = [0, 0]
             while searchrange0[0] >= 2.0:
                 center_list = []
                 for threshold in np.arange(searchrange0[0], searchrange0[1], searchrange0[2]):
@@ -180,14 +181,24 @@ def starfind_center3(fitslist, param, searchrange=[3.0, 5.0, 0.2], minstarnum=0,
                 coordsfile = re.sub('.fits', '.coo', filename)
                 bottom.center(filename, coordsfile, 'temp.coo')
                 starnum, file = chose_unique_coords(coordsfile)
-                if (starnum < minstarnum) & (searchrange0[0] > 2.0):
+                #print(f'{filename}, {searchrange0}')
+
+                if roopnum[0] > 0 and roopnum[1] > 0:
+                    if searchrange0[0] > 2.0:
+                        searchrange0[0] -= 1
+                        searchrange0[1] -= 1
+                    break
+
+                elif (starnum < minstarnum) & (searchrange0[0] > 2.0):
                     #print(f'retry starfind')
                     searchrange0[0] -= 1
                     searchrange0[1] -= 1
+                    roopnum[0] += 1
                     continue
                 elif starnum > maxstarnum:
                     searchrange0[0] += 1
                     searchrange0[1] += 1
+                    roopnum[1] += 1
                     continue
                 else:
                     break
@@ -449,13 +460,20 @@ def do_lnummatch(optcoolist, infcoolist):
             lnum_match(filename, optcoolist[varr][0], outf)
 
 
-def geotparam(param, file_list):
+def geotparam(param, file_list, base_rotate):
 
     param_list = []
 
     for filename in file_list:
         geotp = {}
         geotp['fitsid']=filename[1:-4]
+        tempfits = f'{filename[0:-4]}.fits'
+        hdu = fits.open(tempfits)
+        move_rotate = float(hdu[0].header['OFFSETRO']) or 0
+        rotate_diff = abs(base_rotate - move_rotate)
+        rotate1 = 360 - rotate_diff
+        rotate2 = rotate_diff
+
 
         with open(filename, 'r') as f1:
             lines = f1.readlines()
@@ -481,9 +499,11 @@ def geotparam(param, file_list):
                 geotp['yshift']=float(line_list[1])
         
             elif 'xrotation' in line:
-                geotp['xrotation']=float(line_list[1])
+                if (abs(float(line_list[1]) - rotate1) < 5) or (abs(float(line_list[1]) - rotate2) < 5):
+                    geotp['xrotation']=float(line_list[1])
             elif 'yrotation' in line:
-                geotp['yrotation']=float(line_list[1])
+                if (abs(float(line_list[1]) - rotate1) < 5) or (abs(float(line_list[1]) - rotate2) < 5):
+                    geotp['yrotation']=float(line_list[1])
         
         if len(geotp) != 10:
             continue
@@ -769,11 +789,18 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
         return moved_coox, moved_cooy
 
     opt_geomdict = {}
+    
     for varr in opt_geomfile:
-        opt_geomdict[varr] = geotparam(param, opt_geomfile[varr])
+        tempfits = f'{varr}{opt_matchb[varr]}.fits'
+        hdu = fits.open(tempfits)
+        base_rotate = float(hdu[0].header['OFFSETRO']) or 0
+        opt_geomdict[varr] = geotparam(param, opt_geomfile[varr], base_rotate)
     inf_geomdict = {}
     for varr in inf_geomfile:
-        inf_geomdict[varr] = geotparam(param, inf_geomfile[varr])
+        tempfits = f'{varr}{inf_matchb[varr]}.fits'
+        hdu = fits.open(tempfits)
+        base_rotate = float(hdu[0].header['OFFSETRO']) or 0
+        inf_geomdict[varr] = geotparam(param, inf_geomfile[varr], base_rotate)
     
 
     opt_iddict = {}
@@ -877,6 +904,7 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
                 
             bottom.geotran(fitsname, outfile, xmean, ymean, xrefmean, yrefmean, xrotation, yrotation)
 
+    not_exec = not_exec.sort()
     for varr in not_exec:
         print(f'{varr} was not moved.')
     

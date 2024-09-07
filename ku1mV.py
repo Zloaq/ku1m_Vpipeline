@@ -381,9 +381,9 @@ def execute_code(param, objparam, log, bands='gijhk'):
 				iraf.chdir(param.rawdata_infra)
 				globlist = glob.glob('*.fits')
 			except:
-				print(f'{param.rawdata_inf} is not exists.')
+				print(f'{param.rawdata_infra} is not exists.')
 				globlist = []
-				
+
 			for fitsname in globlist:
 				band = fitsname[0]
 				if band not in fitslist:

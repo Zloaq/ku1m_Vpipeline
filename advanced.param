@@ -61,11 +61,11 @@ j_maxstarnum    25
 h_maxstarnum    25
 k_maxstarnum    25
 
-g_minstarnum    20
-i_minstarnum    20
-j_minstarnum    20
-h_minstarnum    20
-k_minstarnum    20
+g_minstarnum    30
+i_minstarnum    30
+j_minstarnum    10
+h_minstarnum    10
+k_minstarnum    10
 
 
 #--------geotran_base-------------------
