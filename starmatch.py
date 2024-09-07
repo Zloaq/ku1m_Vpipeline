@@ -904,7 +904,7 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
                 
             bottom.geotran(fitsname, outfile, xmean, ymean, xrefmean, yrefmean, xrotation, yrotation)
 
-    not_exec = not_exec.sort()
+    not_exec.sort()
     for varr in not_exec:
         print(f'{varr} was not moved.')
     
