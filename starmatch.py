@@ -829,8 +829,8 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
 
     not_exec = []
     for varr in optkey:
-        #ほんとに 1からでいいんか？？？？
-        for fitsname in tqdm(fitslist[varr][1:], desc=f'{varr} band geotran '):
+        
+        for fitsname in tqdm(fitslist[varr], desc=f'{varr} band geotran '):
             fitsid = fitsname[1:-5]
             
             if fitsid == opt_matchb[geotran_base[varr]]:
@@ -866,8 +866,8 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
     #print(f'inf_iddict\n{inf_iddict}')
     #print(f'inf_geomdict\n{inf_geomdict}')
     for varr in infrakey:
-        #ほんとに 1からでいいんか？？？？
-        for fitsname in tqdm(fitslist[varr][1:], desc=f'{varr} band geotran '):
+        
+        for fitsname in tqdm(fitslist[varr], desc=f'{varr} band geotran '):
             fitsid = fitsname[1:-5]
 
             if fitsid == inf_matchb[geotran_base[varr]]:
