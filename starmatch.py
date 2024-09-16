@@ -215,7 +215,7 @@ def starfind_center3(fitslist, param, searchrange=[3.0, 5.0, 0.2], minstarnum=0,
 
     return starnumlist, coordsfilelist, iterate
 
-def lnum_match(inputf, referencef, outputf, rotatediff=0):
+def triangle_match(inputf, referencef, outputf, match_threshold=0.05):
     def read_coofile(infile):
         with open(infile, 'r') as file:
             flines = file.readlines()
@@ -231,9 +231,9 @@ def lnum_match(inputf, referencef, outputf, rotatediff=0):
             # 辺の長さを計算
             sides = [np.linalg.norm(tri[i] - tri[j]) for i, j in combinations(range(3), 2)]
             sides = np.sort(sides)
-            # 辺の長さを正規化
+            
             #sides = sides / sides[-1]  # 最大の辺の長さで割る
-            # 内角の計算
+
             a, b, c = sides
             angles = [
                 np.arccos((b**2 + c**2 - a**2) / (2 * b * c)),
@@ -246,27 +246,22 @@ def lnum_match(inputf, referencef, outputf, rotatediff=0):
         return descriptors
 
     def match_triangle():
-        # 1. データの読み込み
+        
         coords_input = read_coofile(inputf)
         coords_ref = read_coofile(referencef)
 
-        # 2. 三角形の特徴量の計算
         descriptors_input = compute_triangle_descriptors(coords_input)
         descriptors_ref = compute_triangle_descriptors(coords_ref)
         #print(f'入力画像の三角形の数: {len(descriptors_input)}')
         #print(f'参照画像の三角形の数: {len(descriptors_ref)}')
 
-        # 3. 三角形のマッチング
-        # 特徴量を配列に変換
         descs_input = np.array([desc[0] for desc in descriptors_input])
         descs_ref = np.array([desc[0] for desc in descriptors_ref])
 
-        # 最近傍探索を行う
         nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(descs_ref)
         distances, indices = nbrs.kneighbors(descs_input)
 
-        # 一定の閾値以下のマッチングのみを採用
-        threshold = 0.05  # データに応じて調整
+        threshold = match_threshold
         good_matches = distances[:, 0] < threshold
 
         matched_triangles_input = [descriptors_input[i][1] for i in range(len(descriptors_input)) if good_matches[i]]
@@ -275,8 +270,6 @@ def lnum_match(inputf, referencef, outputf, rotatediff=0):
         #print(f'入力画像の三角形のマッチした数: {len(matched_triangles_input)}')
         #print(f'参照画像の三角形のマッチした数: {len(matched_triangles_ref)}')
 
-        # 4. 変換行列の推定
-        # マッチした三角形の頂点を用いて対応点のリストを作成
         src_points = []
         dst_points = []
         for tri_input, tri_ref in zip(matched_triangles_input, matched_triangles_ref):
@@ -574,11 +567,11 @@ def match_checker(checklist):
     return matched_star
 
 
-def do_lnummatch(optcoolist, infcoolist):
+def do_trimatch(optcoolist, infcoolist):
     for varr in optcoolist:
         for filename in optcoolist[varr][1:]:
             outf = re.sub(r'.coo', r'.match', filename)
-            lnum_match(filename, optcoolist[varr][0], outf)
+            triangle_match(filename, optcoolist[varr][0], outf)
 
 
 def geotparam(param, file_list, base_rotate):
@@ -761,7 +754,7 @@ def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
             hdu = fits.open(tempfits)
             base_rotate = float(hdu[0].header['OFFSETRO']) or 0
             opt_matchbase[varr] = optbase
-            for filename in tqdm(optcoolist[varr], desc='{:<}'.format(f'{varr} lnummatch')):
+            for filename in tqdm(optcoolist[varr], desc='{:<}'.format(f'{varr} trimatch')):
                 if filename[1:-4] == optbase:
                     continue
                 tempfits = re.sub('.coo', '.fits', filename)
@@ -769,7 +762,7 @@ def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
                 move_rotate = float(hdu[0].header['OFFSETRO']) or 0
                 rotatediff = move_rotate - base_rotate
                 outf = re.sub(r'.coo', r'.match', filename)
-                outfvarr = lnum_match(filename, optcoolist[varr][0], outf, rotatediff)
+                outfvarr = triangle_match(filename, optcoolist[varr][0], outf, rotatediff)
                 if outfvarr == None:
                     continue
                 opt_matchedf[varr].append(outfvarr)
@@ -794,7 +787,7 @@ def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
             hdu = fits.open(tempfits)
             base_rotate = float(hdu[0].header['OFFSETRO']) or 0
             inf_matchbase[varr] = infbase
-            for filename in tqdm(infcoolist[varr], desc='{:<}'.format(f'{varr} lnummatch')):
+            for filename in tqdm(infcoolist[varr], desc='{:<}'.format(f'{varr} trimatch')):
                 if filename[1:-4] == infbase:
                     continue
                 tempfits = re.sub('.coo', '.fits', filename)
@@ -802,7 +795,7 @@ def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
                 move_rotate = float(hdu[0].header['OFFSETRO']) or 0
                 rotatediff = move_rotate - base_rotate
                 outf = re.sub(r'.coo', r'.match', filename)
-                outfvarr = lnum_match(filename, infcoolist[varr][0], outf, rotatediff)
+                outfvarr = triangle_match(filename, infcoolist[varr][0], outf, rotatediff)
                 if outfvarr == None:
                     continue
                 inf_matchedf[varr].append(outfvarr)
@@ -1030,8 +1023,6 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
         print(f'{varr} was not moved.')
     
 
-
-    
 
 def main(fitslist, param):
      
