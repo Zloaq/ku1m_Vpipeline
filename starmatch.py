@@ -296,7 +296,6 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05):
     # write .match
 
     if matched_coo.size == 0:
-        print()
         return None
 
     with open(outputf, 'w') as f1:
@@ -762,7 +761,7 @@ def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
                 move_rotate = float(hdu[0].header['OFFSETRO']) or 0
                 rotatediff = move_rotate - base_rotate
                 outf = re.sub(r'.coo', r'.match', filename)
-                outfvarr = triangle_match(filename, optcoolist[varr][0], outf, rotatediff)
+                outfvarr = triangle_match(filename, optcoolist[varr][0], outf)
                 if outfvarr == None:
                     continue
                 opt_matchedf[varr].append(outfvarr)
@@ -795,7 +794,7 @@ def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
                 move_rotate = float(hdu[0].header['OFFSETRO']) or 0
                 rotatediff = move_rotate - base_rotate
                 outf = re.sub(r'.coo', r'.match', filename)
-                outfvarr = triangle_match(filename, infcoolist[varr][0], outf, rotatediff)
+                outfvarr = triangle_match(filename, infcoolist[varr][0], outf)
                 if outfvarr == None:
                     continue
                 inf_matchedf[varr].append(outfvarr)
