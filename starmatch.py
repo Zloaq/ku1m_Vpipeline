@@ -12,6 +12,11 @@ from tqdm import tqdm
 from astropy.io import fits
 from pyraf import iraf
 
+from itertools import combinations
+from scipy.spatial import KDTree
+from scipy.spatial.transform import Rotation as R
+from sklearn.neighbors import NearestNeighbors
+
 import bottom
 
 import matplotlib.pyplot as plt
@@ -210,7 +215,123 @@ def starfind_center3(fitslist, param, searchrange=[3.0, 5.0, 0.2], minstarnum=0,
 
     return starnumlist, coordsfilelist, iterate
 
+def lnum_match(inputf, referencef, outputf, rotatediff=0):
+    def read_coofile(infile):
+        with open(infile, 'r') as file:
+            flines = file.readlines()
+        lines = [line.strip().split() for line in flines if not line.startswith('#')]
+        coords = np.array([[float(line[0]), float(line[1])] for line in lines])  # coox, cooy,
+        return coords
 
+    def compute_triangle_descriptors(coords):
+        triangles = list(combinations(coords, 3))
+        descriptors = []
+        for tri in triangles:
+            tri = np.array(tri)
+            # 辺の長さを計算
+            sides = [np.linalg.norm(tri[i] - tri[j]) for i, j in combinations(range(3), 2)]
+            sides = np.sort(sides)
+            # 辺の長さを正規化
+            #sides = sides / sides[-1]  # 最大の辺の長さで割る
+            # 内角の計算
+            a, b, c = sides
+            angles = [
+                np.arccos((b**2 + c**2 - a**2) / (2 * b * c)),
+                np.arccos((a**2 + c**2 - b**2) / (2 * a * c)),
+                np.arccos((a**2 + b**2 - c**2) / (2 * a * b))
+            ]
+            angles = np.sort(angles)
+            descriptor = np.concatenate([sides, angles])
+            descriptors.append((descriptor, tri))
+        return descriptors
+
+    def match_triangle():
+        # 1. データの読み込み
+        coords_input = read_coofile(inputf)
+        coords_ref = read_coofile(referencef)
+
+        # 2. 三角形の特徴量の計算
+        descriptors_input = compute_triangle_descriptors(coords_input)
+        descriptors_ref = compute_triangle_descriptors(coords_ref)
+        #print(f'入力画像の三角形の数: {len(descriptors_input)}')
+        #print(f'参照画像の三角形の数: {len(descriptors_ref)}')
+
+        # 3. 三角形のマッチング
+        # 特徴量を配列に変換
+        descs_input = np.array([desc[0] for desc in descriptors_input])
+        descs_ref = np.array([desc[0] for desc in descriptors_ref])
+
+        # 最近傍探索を行う
+        nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(descs_ref)
+        distances, indices = nbrs.kneighbors(descs_input)
+
+        # 一定の閾値以下のマッチングのみを採用
+        threshold = 0.05  # データに応じて調整
+        good_matches = distances[:, 0] < threshold
+
+        matched_triangles_input = [descriptors_input[i][1] for i in range(len(descriptors_input)) if good_matches[i]]
+        matched_triangles_ref = [descriptors_ref[indices[i][0]][1] for i in range(len(descriptors_input)) if good_matches[i]]
+
+        #print(f'入力画像の三角形のマッチした数: {len(matched_triangles_input)}')
+        #print(f'参照画像の三角形のマッチした数: {len(matched_triangles_ref)}')
+
+        # 4. 変換行列の推定
+        # マッチした三角形の頂点を用いて対応点のリストを作成
+        src_points = []
+        dst_points = []
+        for tri_input, tri_ref in zip(matched_triangles_input, matched_triangles_ref):
+            for pt_input, pt_ref in zip(tri_input, tri_ref):
+                src_points.append(pt_input)
+                dst_points.append(pt_ref)
+        src_points = np.array(src_points)
+        dst_points = np.array(dst_points)
+
+        # 重複する点を除去
+        src_points_unique, indices = np.unique(src_points, axis=0, return_index=True)
+        dst_points_unique = dst_points[indices]
+
+        matched_pair = [(dst_points_unique[i], src_points_unique[i]) for i in range(len(dst_points_unique))]
+        matched_pair = np.array(matched_pair)
+        
+        #print(f'src\n{src_points_unique}')
+        #print(f'dst\n{dst_points_unique}')
+        #print(f'matched\n{matched_pair}')
+
+        return matched_pair
+    
+    matched_coo = match_triangle()
+    # write .match
+
+    if matched_coo.size == 0:
+        print()
+        return None
+
+    with open(outputf, 'w') as f1:
+        f1.write(
+            f'# Input: {inputf}\n'
+            f'# Reference: {referencef}\n'
+            f'# Column definitions\n'
+            f'#    Column 1: X reference coordinate\n'
+            f'#    Column 2: Y reference coordinate\n'
+            f'#    Column 3: X input coordinate\n'
+            f'#    Column 4: Y input coordinate\n\n'
+        )
+        
+        #print(f'testtttttttttttttttt, {matched_coo}, {matched_coo.shape}')
+        for coo_varr in matched_coo:
+            #print('testttttttttt2', coo)
+            #print(coo_varr[0][0])
+            #print(coo_varr[0][0].shape)
+            f1.write(
+                f'   '
+                '{:<7}'.format(coo_varr[0][0].item())+'   '
+                '{:<7}'.format(coo_varr[0][1].item())+'   '
+                '{:<7}'.format(coo_varr[1][0].item())+'   '
+                '{:<7}'.format(coo_varr[1][1].item())+'\n'
+                )
+    return outputf
+
+"""
 def lnum_match(inputf, referancef, outputf, rotatediff=0): # 変な画像があることは考慮してない。
 
     def read_coofile(infile):
@@ -434,7 +555,7 @@ def lnum_match(inputf, referancef, outputf, rotatediff=0): # 変な画像があ�
                 '{:<7}'.format(coo_varr[1][1].item())+'\n'
                 )
     return outputf
-
+"""
 
 def match_checker(checklist):
     #print('check すっぞ')
@@ -830,7 +951,7 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
     not_exec = []
     for varr in optkey:
         
-        for fitsname in tqdm(fitslist[varr], desc=f'{varr} band geotran '):
+        for fitsname in tqdm(fitslist[varr], desc=f'try {varr} band geotran '):
             fitsid = fitsname[1:-5]
             
             if fitsid == opt_matchb[geotran_base[varr]]:
@@ -867,7 +988,7 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
     #print(f'inf_geomdict\n{inf_geomdict}')
     for varr in infrakey:
         
-        for fitsname in tqdm(fitslist[varr], desc=f'{varr} band geotran '):
+        for fitsname in tqdm(fitslist[varr], desc=f'try {varr} band geotran '):
             fitsid = fitsname[1:-5]
 
             if fitsid == inf_matchb[geotran_base[varr]]:
