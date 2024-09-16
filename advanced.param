@@ -55,11 +55,11 @@ k_skyfit        1
 
 #---------starfind-------------------
 
-g_maxstarnum    40
-i_maxstarnum    40
-j_maxstarnum    25
-h_maxstarnum    25
-k_maxstarnum    25
+g_maxstarnum    60
+i_maxstarnum    60
+j_maxstarnum    30
+h_maxstarnum    30
+k_maxstarnum    30
 
 g_minstarnum    30
 i_minstarnum    30
@@ -67,6 +67,13 @@ j_minstarnum    10
 h_minstarnum    10
 k_minstarnum    10
 
+#--------triangle_match-------------------
+
+g_threshold     0.06
+i_threshold     0.06
+j_threshold     0.095
+h_threshold     0.095
+k_threshold     0.095
 
 #--------geotran_base-------------------
 

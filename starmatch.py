@@ -728,7 +728,7 @@ def do_starfind(fitslist, param, optkey, infrakey):
     return optstarlist, optcoolist, infstarlist, infcoolist
 
 
-def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
+def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
 
     opt_match = {}
     inf_match = {}
@@ -743,6 +743,10 @@ def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
     else:
         optcommon = set()
 
+    match_threshold = {
+        'g':param.g_threshold, 'i':param.i_threshold,
+        'j':param.j_threshold, 'h':param.h_threshold, 'k':param.k_threshold
+        }
     
 
     for varr in optcoolist:
@@ -761,7 +765,7 @@ def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
                 move_rotate = float(hdu[0].header['OFFSETRO']) or 0
                 rotatediff = move_rotate - base_rotate
                 outf = re.sub(r'.coo', r'.match', filename)
-                outfvarr = triangle_match(filename, optcoolist[varr][0], outf)
+                outfvarr = triangle_match(filename, optcoolist[varr][0], outf, match_threshold[varr])
                 if outfvarr == None:
                     continue
                 opt_matchedf[varr].append(outfvarr)
@@ -794,7 +798,7 @@ def do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist):
                 move_rotate = float(hdu[0].header['OFFSETRO']) or 0
                 rotatediff = move_rotate - base_rotate
                 outf = re.sub(r'.coo', r'.match', filename)
-                outfvarr = triangle_match(filename, infcoolist[varr][0], outf)
+                outfvarr = triangle_match(filename, infcoolist[varr][0], outf, match_threshold[varr])
                 if outfvarr == None:
                     continue
                 inf_matchedf[varr].append(outfvarr)
@@ -941,6 +945,7 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
     bottom.geotran_param()
 
     not_exec = []
+    basefits = {}
     for varr in optkey:
         
         for fitsname in tqdm(fitslist[varr], desc=f'try {varr} band geotran '):
@@ -949,6 +954,7 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
             if fitsid == opt_matchb[geotran_base[varr]]:
                 outfile = re.sub('.fits', f'_geo{varr}.fits', fitsname)
                 bottom.geotran(fitsname, outfile, 1, 1, 1, 1, 0, 0)
+                basefits[varr] = outfile
                 continue
 
             if fitsid not in opt_iddict:
@@ -986,6 +992,7 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
             if fitsid == inf_matchb[geotran_base[varr]]:
                 outfile = re.sub('.fits', f'_geo{varr}.fits', fitsname)
                 bottom.geotran(fitsname, outfile, 1, 1, 1, 1, 0, 0)
+                basefits[varr] = outfile
                 continue
 
             if fitsid not in inf_iddict:
@@ -1017,6 +1024,10 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
                 
             bottom.geotran(fitsname, outfile, xmean, ymean, xrefmean, yrefmean, xrotation, yrotation)
 
+    
+    for band in basefits:
+        print(f'{band} base is {basefits[band]}')
+    
     not_exec.sort()
     for varr in not_exec:
         print(f'{varr} was not moved.')
@@ -1050,7 +1061,7 @@ def main(fitslist, param):
 
     #print(f'starnum \n{infstarlist}')
     
-    result_varr = do_xyxymatch(optstarlist, optcoolist, infstarlist, infcoolist)
+    result_varr = do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist)
 
     opt_match    = result_varr[0]
     opt_matchb   = result_varr[1]

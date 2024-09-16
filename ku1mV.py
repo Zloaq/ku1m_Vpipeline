@@ -485,7 +485,23 @@ def execute_code(param, objparam, log, bands='gijhk'):
 
 	if param.aperture_phot == 1:
 		print('phot')
-		
+
+	if param.row_fits == 1:
+		subprocess.run(f'rm {param.work_dir}/???????-????.fits', shell=True)
+	if param.cut_fits == 1:
+		subprocess.run(f'rm {param.work_dir}/*_cut.fits', shell=True)
+	if param.lev_fits == 1:
+		subprocess.run(f'rm {param.work_dir}/*_lev.fits', shell=True)
+	if param.sky_fits == 1:
+		subprocess.run(f'rm {param.work_dir}/*_sky.fits', shell=True)
+	if param.geo_fits == 1:
+		subprocess.run(f'rm {param.work_dir}/*_geo?.fits', shell=True)
+	if param.coo_file == 1:
+		subprocess.run(f'rm {param.work_dir}/*.coo', shell=True)
+	if param.match_file == 1:
+		subprocess.run(f'rm {param.work_dir}/*.match', shell=True)
+	if param.geo_file == 1:
+		subprocess.run(f'rm {param.work_dir}/*.geo', shell=True)
 
 
 if __name__ == '__main__':
