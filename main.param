@@ -24,7 +24,7 @@ aperture_phot   0
 row_fits        1
 cut_fits        1
 lev_fits        1
-sky_fits        1
+sky_fits        0
 geo_fits        0
 
 coo_file        1

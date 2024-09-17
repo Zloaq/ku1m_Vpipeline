@@ -279,7 +279,6 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05):
         src_points = np.array(src_points)
         dst_points = np.array(dst_points)
 
-        # 重複する点を除去
         src_points_unique, indices = np.unique(src_points, axis=0, return_index=True)
         dst_points_unique = dst_points[indices]
 

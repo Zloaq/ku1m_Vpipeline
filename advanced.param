@@ -69,8 +69,8 @@ k_minstarnum    10
 
 #--------triangle_match-------------------
 
-g_threshold     0.06
-i_threshold     0.06
+g_threshold     0.05
+i_threshold     0.05
 j_threshold     0.095
 h_threshold     0.095
 k_threshold     0.095
