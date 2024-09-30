@@ -75,7 +75,7 @@ def do_init():
 
 class readparam():
 
-	def __init__(self, date, objectname):
+	def __init__(self, date='{date}', objectname='{objectname}'):
 		
 		path_program = os.path.abspath(__file__)
 		dir_of_program = os.path.dirname(path_program)
@@ -369,55 +369,57 @@ def make_objfile(objectname, param):
 def execute_code(param, objparam, log, bands='gijhk'):
 	
 	bottom.setparam()
-	if log.log == 'exits':
-		fitspro = log.fitspro
-	else:
-		fitspro = []
-		fitslist = {}
-		obnamelist = {}
-		subprocess.run(f'rm {param.work_dir}/*.fits', shell=True)
-		if any(varr in bands for varr in ['j', 'h', 'k']):
-			try:
-				iraf.chdir(param.rawdata_infra)
-				globlist = glob.glob('*.fits')
-			except:
-				print(f'{param.rawdata_infra} is not exists.')
-				globlist = []
 
-			for fitsname in globlist:
-				band = fitsname[0]
-				if band not in fitslist:
-					fitslist[band] = []
-				fitslist[band].append(fitsname)
-			for band1 in fitslist:
-				if band1 in ['j', 'h', 'k']:
-					fitslist[band1], obnamelist[band1] = match_object(fitslist[band1], objparam.SearchName)
-					for varr in fitslist[band1]:
-						shutil.copy(varr, param.work_dir)
+	fitspro = []
+	fitslist = {}
+	obnamelist = {}
+	subprocess.run(f'rm {param.work_dir}/*.fits', shell=True, stderr=subprocess.DEVNULL)
+	if any(varr in bands for varr in ['j', 'h', 'k']):
+		try:
+			iraf.chdir(param.rawdata_infra)
+			globlist = glob.glob('*.fits')
+		except:
+			print(f'{param.rawdata_infra} is not exists.')
+			globlist = []
+
+		for fitsname in globlist:
+			band = fitsname[0]
+			if band not in fitslist:
+				fitslist[band] = []
+			fitslist[band].append(fitsname)
+		for band1 in fitslist:
+			if band1 in ['j', 'h', 'k']:
+				fitslist[band1], obnamelist[band1] = match_object(fitslist[band1], objparam.SearchName)
+				for varr in fitslist[band1]:
+					shutil.copy(varr, param.work_dir)
+	
+	if any(varr in bands for varr in ['g', 'i']):
+		try:
+			iraf.chdir(param.rawdata_opt)
+			globlist = glob.glob('*.fits')
+		except:
+			print(f'{param.rawdata_opt} is not exists.')
+			globlist = []
 		
-		if any(varr in bands for varr in ['g', 'i']):
-			try:
-				iraf.chdir(param.rawdata_opt)
-				globlist = glob.glob('*.fits')
-			except:
-				print(f'{param.rawdata_opt} is not exists.')
-				globlist = []
-			
-			for fitsname in globlist:
-				band = fitsname[0]
-				if band not in fitslist:
-					fitslist[band] = []
-				fitslist[band].append(fitsname)
-			for band1 in fitslist:
-				if band1 in ['g', 'i']:
-					fitslist[band1], obnamelist[band1] = match_object(fitslist[band1], objparam.SearchName)
-					for varr in fitslist[band1]:
-						shutil.copy(varr, param.work_dir)
+		for fitsname in globlist:
+			band = fitsname[0]
+			if band not in fitslist:
+				fitslist[band] = []
+			fitslist[band].append(fitsname)
+		for band1 in fitslist:
+			if band1 in ['g', 'i']:
+				fitslist[band1], obnamelist[band1] = match_object(fitslist[band1], objparam.SearchName)
+				for varr in fitslist[band1]:
+					shutil.copy(varr, param.work_dir)
 
 	keys_to_remove = [key for key in fitslist if not fitslist[key]]
 	for key in keys_to_remove:
 		del fitslist[key]
 	bands = list(fitslist.keys())
+
+	if len(bands)==0:
+		print(f'row data is not exists.')
+		sys.exit()
 
 	iraf.chdir(param.work_dir)
 
@@ -473,35 +475,34 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		starmatch.main(fitslist, param)
 		fitspro.append('geo*')
 
-
 	if param.comb_per_set == 1:
 		fitslist = glob_latestproc2(bands, fitspro)
 		com_p.comb_pset(fitslist)
 
 	if param.comb_all == 1:
 		print('comb_all')
-		fitslist = glob_latestproc(bands, fitspro)
+		fitslist = glob_latestproc2(bands, fitspro)
 		com_p.comb_all(fitslist, argvs[1], argvs[2])
 
 	if param.aperture_phot == 1:
 		print('phot')
 
 	if param.row_fits == 1:
-		subprocess.run(f'rm {param.work_dir}/???????-????.fits', shell=True)
+		subprocess.run(f'rm {param.work_dir}/???????-????.fits', shell=True, stderr=subprocess.DEVNULL)
 	if param.cut_fits == 1:
-		subprocess.run(f'rm {param.work_dir}/*_cut.fits', shell=True)
+		subprocess.run(f'rm {param.work_dir}/*_cut.fits', shell=True, stderr=subprocess.DEVNULL)
 	if param.lev_fits == 1:
-		subprocess.run(f'rm {param.work_dir}/*_lev.fits', shell=True)
+		subprocess.run(f'rm {param.work_dir}/*_lev.fits', shell=True, stderr=subprocess.DEVNULL)
 	if param.sky_fits == 1:
-		subprocess.run(f'rm {param.work_dir}/*_sky.fits', shell=True)
+		subprocess.run(f'rm {param.work_dir}/*_sky.fits', shell=True, stderr=subprocess.DEVNULL)
 	if param.geo_fits == 1:
-		subprocess.run(f'rm {param.work_dir}/*_geo?.fits', shell=True)
+		subprocess.run(f'rm {param.work_dir}/*_geo?.fits', shell=True, stderr=subprocess.DEVNULL)
 	if param.coo_file == 1:
-		subprocess.run(f'rm {param.work_dir}/*.coo', shell=True)
+		subprocess.run(f'rm {param.work_dir}/*.coo', shell=True, stderr=subprocess.DEVNULL)
 	if param.match_file == 1:
-		subprocess.run(f'rm {param.work_dir}/*.match', shell=True)
+		subprocess.run(f'rm {param.work_dir}/*.match', shell=True, stderr=subprocess.DEVNULL)
 	if param.geo_file == 1:
-		subprocess.run(f'rm {param.work_dir}/*.geo', shell=True)
+		subprocess.run(f'rm {param.work_dir}/*.geo', shell=True, stderr=subprocess.DEVNULL)
 
 
 if __name__ == '__main__':
@@ -537,8 +538,6 @@ if __name__ == '__main__':
 		execute_code(param, objparam, log, 'gijhk')
 
 	elif argc == 4:
-		print('yetyetyet, only jhk')
-		sys.exit()
 		param = readparam(argvs[2], argvs[1])
 		objparam = readobjfile(param, argvs[1])
 

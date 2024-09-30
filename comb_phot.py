@@ -30,19 +30,11 @@ def comb_pset(fitslist):
 
 def comb_all(fitslist, day, obname):
 
-    sep_band = {}
-    header = bottom.readheader(fitslist)
-    unique_band = set(header.band)
-    uni_band = list(unique_band)
+    for band in fitslist:
+        outname = f'{band}{day}-{obname}.fits'
+        bottom.combine(fitslist[band], outname, 'average')
 
-    for band in uni_band:
-        sep_band[band] = [f'{band}{day}_{obname}.fits']
-    for index, fitsname in enumerate(fitslist):
-        band = header.band[index]
-        sep_band[band].append(fitsname)
 
-    for key in sep_band:
-        bottom.combine(sep_band[key][1:], sep_band[key][0], 'average')
 
 """
 def match_star_coords(fitslist, refcoofile, fwhms=[3, 4, 5]):

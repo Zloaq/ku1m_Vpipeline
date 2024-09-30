@@ -31,8 +31,8 @@ def flat_division(inlist):
 
 def method2_1(fitslist):
     # skylevel subtraction
-    levlist = [bottom.skystat(fitsname, 'median') for fitsname in fitslist]
-    for index, f2 in enumerate(tqdm(fitslist, desc='{:<13}'.format('sub_skylevel'))):
+    levlist = [bottom.skystat(fitsname, 'median') for fitsname in tqdm(fitslist, desc='{:<13}'.format('calc skylevel'))]
+    for index, f2 in enumerate(tqdm(fitslist, desc='{:<13}'.format('sub skylevel'))):
         data, hdr = fits.getdata(f2, header=True)
         f3 = re.sub(r'.fits', r'_lev.fits', f2)
         #print(f'{f2} {levlist}')
@@ -47,7 +47,7 @@ def method2_2(fitslist):
     levmean = statistics.mean(levlist)
     levratio = [levmean/varr for varr in levlist]
 
-    for index, fitsname in enumerate(tqdm(fitslist, desc='{:<13}'.format('div_skylevel'))):
+    for index, fitsname in enumerate(tqdm(fitslist, desc='{:<13}'.format('div skylevel'))):
         data, hdr = fits.getdata(fitsname, header=True)
         fitsname2 = re.sub(r'.fits', r'_ylev.fits', fitsname)
         data = data * levratio[index]
@@ -62,13 +62,13 @@ def method3(flist, obnamelist):
     
     def self_sky(ondict):
         
-        for key in tqdm(ondict, desc='{:<13}'.format('make_selfsky')):
+        for key in tqdm(ondict, desc='{:<13}'.format('make selfsky')):
             out = '_' + key + '_skyimg.fits'
             bottom.combine(ondict[key], out, 'median')
 
     def off_sky(firstoff, firston, offdict):
 
-        for band in tqdm(firstoff, desc='{:<13}'.format('make_offsky')):
+        for band in tqdm(firstoff, desc='{:<13}'.format('make offsky')):
             off_hdulist = [bottom.readheader(fits) for fits in firstoff[band]]
             on_hdulist  = [bottom.readheader(fits) for fits in firston[band]]
             for hdu in on_hdulist:
@@ -122,7 +122,6 @@ def method4(flist, obnamelist):
         out2 = re.sub(r'.fits', r'_sky.fits', flist[i1])
         bottom.imarith(flist[i1], '-', sky, out2)
         #print(flist[i1],'-', sky, '=' ,out2)
-
 
 
 

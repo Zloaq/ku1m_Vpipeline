@@ -21,7 +21,7 @@ import bottom
 
 import matplotlib.pyplot as plt
 
-def starfind_center3(fitslist, param, searchrange=[3.0, 5.0, 0.2], minstarnum=0, maxstarnum=100):
+def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], minstarnum=0, maxstarnum=100):
     
     def squareness(region_slice):
         width = region_slice[1].stop - region_slice[1].start
@@ -49,10 +49,9 @@ def starfind_center3(fitslist, param, searchrange=[3.0, 5.0, 0.2], minstarnum=0,
         return np.array([[1 if d > threshold * rms else 0 for d in r] for r in data])
     
     def filter_saturate(labeled_image, filtered_data, objects, header):
-        tempkey = f'{band}_satcount'
         #div には対応してない
         skycount = float(header['SKYCOUNT'] or 0)
-        saturation_value = float(getattr(param, tempkey)) - skycount
+        saturation_value = float(satcount) - skycount
         saturated_mask = filtered_data >= saturation_value
         saturated_labels = np.unique(labeled_image[saturated_mask])
         
@@ -138,13 +137,10 @@ def starfind_center3(fitslist, param, searchrange=[3.0, 5.0, 0.2], minstarnum=0,
 
         return starnum, coordsfile
 
-    pixscale = {
-        'g':param.pixscale_g, 'i':param.pixscale_i,
-        'j':param.pixscale_j, 'h':param.pixscale_h, 'k':param.pixscale_k
-    }
+    
     coordsfilelist = []
     starnumlist = []
-    band = fitslist[0][0]
+    
     #print(f'{band} band threshold range = {searchrange}')
 
     #for index, filename in enumerate(tqdm(fitslist, desc=f'{fitslist[0][0]} band starfind')):
@@ -155,8 +151,8 @@ def starfind_center3(fitslist, param, searchrange=[3.0, 5.0, 0.2], minstarnum=0,
             filename = fitslist[iterate]
             data = fits.getdata(filename)
             header = fits.getheader(filename)
-            offra_pix = int(float(header['OFFSETRA'])/pixscale[band])
-            offde_pix = int(float(header['OFFSETDE'])/pixscale[band])
+            offra_pix = int(float(header['OFFSETRA'])/pixscale)
+            offde_pix = int(float(header['OFFSETDE'])/pixscale)
             if offra_pix > 0:
                 data[:, :offra_pix] = 0
             elif offra_pix < 0:
@@ -214,6 +210,7 @@ def starfind_center3(fitslist, param, searchrange=[3.0, 5.0, 0.2], minstarnum=0,
             pbar.update(1)
 
     return starnumlist, coordsfilelist, iterate
+
 
 def triangle_match(inputf, referencef, outputf, match_threshold=0.05):
     def read_coofile(infile):
@@ -322,231 +319,7 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05):
                 )
     return outputf
 
-"""
-def lnum_match(inputf, referancef, outputf, rotatediff=0): # 変な画像があることは考慮してない。
 
-    def read_coofile(infile):
-        with open(infile, 'r') as file:
-            flines = file.readlines()
-        lines = [line.strip().split() for line in flines if not line.startswith('#')]
-        coords = [[float(line[0]), float(line[1])] for line in lines] # coox, cooy,
-        return coords
-
-    
-    def calculate_segments(coords):
-        coords = np.array(coords)
-        points = coords.shape[0]
-
-        if points <= 1:
-            return np.array([])
-
-        p1_idx, p2_idx = np.triu_indices(points, k=1)
-
-        x1, y1 = coords[p1_idx, 0], coords[p1_idx, 1]
-        x2, y2 = coords[p2_idx, 0], coords[p2_idx, 1]
-
-        lengths = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-
-        angle_rads = np.arctan2(y2 - y1, x2 - x1)
-        angles_deg = np.degrees(angle_rads)
-
-        
-        mask = (y1 < y2) | ((y1 == y2) & (x1 < x2))
-
-        segments = np.zeros((len(p1_idx), 3, 2))
-        segments[mask, 0] = coords[p1_idx[mask]]
-        segments[mask, 1] = coords[p2_idx[mask]]
-        segments[~mask, 0] = coords[p2_idx[~mask]]
-        segments[~mask, 1] = coords[p1_idx[~mask]]
-        
-        angle1 = np.arctan2(segments[:,1,1]-segments[:,0,1], segments[:,1,0]-segments[:,0,0])
-        angle2 = np.arctan2(segments[:,1,0]-segments[:,0,0], segments[:,1,1]-segments[:,0,1])
-        angle_mask = (np.pi/4 < angle1) & (angle1 < 3*np.pi/4)
-
-        segments[angle_mask, 2, 1] = np.degrees(angle1[angle_mask])
-        segments[~angle_mask, 2, 1] = 90 - np.degrees(angle2[~angle_mask])
-
-        segments[:, 2, 0] = lengths
-        segments[:, 2, 1] = angles_deg
-
-        return segments
-    
-
-    def match_segments(inlist, reflist, length_tolerance=5e-1, angle_tolerance=1e-1):
-
-        inplist = np.array(inlist)
-        reflist = np.array(reflist)
-        in_lengths = inplist[:, 2, 0]
-        ref_lengths = reflist[:, 2, 0]
-        in_angles = inplist[:, 2, 1]
-        ref_angles = reflist[:, 2, 1]
-
-        length_diffs = np.abs(ref_lengths[:, np.newaxis] - in_lengths[np.newaxis, :])
-        
-        length_mask = length_diffs < length_tolerance
-
-        indices1 = np.argwhere(length_mask)
-
-
-        #長さが同じものの位置つまり長さが同じ組み合わせ
-
-        reflist1 = reflist[indices1[:, 0], :]
-        inplist1 = inplist[indices1[:, 1], :]
-
-        refvect = reflist1[:, 1] - reflist1[:, 0]
-        inpvect = inplist1[:, 1] - inplist1[:, 0]
-        reflengths = reflist1[:, 2, 0][:, np.newaxis]
-        inplengths = inplist1[:, 2, 0][:, np.newaxis]
-        refvect_norm = refvect / reflengths
-        inpvect_norm = inpvect / inplengths
-
-        refcos = np.dot(refvect_norm, refvect_norm.T)
-        inpcos = np.dot(inpvect_norm, inpvect_norm.T)
-        mask0 = np.triu(np.ones(refcos.shape, dtype=bool), k=1)
-        indices2 = np.argwhere(mask0)
-        #indices2 同じ長さの組の内積
-
-        refcos1 = refcos[mask0]
-        inpcos1 = inpcos[mask0]
-
-        #cos_mask = np.abs(refcos1) - np.abs(inpcos1) < 1e-1
-
-        cos_mask0 = np.abs(refcos1) - np.abs(inpcos1) < 1e-1
-        cos_mask1 = np.abs(refcos1)!=1
-        cos_mask = cos_mask0 & cos_mask1
-
-        refcos2 = refcos1[cos_mask]
-        inpcos2 = inpcos1[cos_mask]
-        indices3 = indices2[cos_mask]
-        #indices3 内積計算したやつの生き残り
-        refseg0 = reflist1[indices3[:, 0], :]
-        refseg1 = reflist1[indices3[:, 1], :]
-        inpseg0 = inplist1[indices3[:, 0], :]
-        inpseg1 = inplist1[indices3[:, 1], :]
-
-        refdistance1 = np.linalg.norm(
-            refseg0[:, [0, 0, 1, 1], :] - refseg1[:, [0, 1, 0, 1], :], axis=2
-            )
-        inpdistance1 = np.linalg.norm(
-            inpseg0[:, [0, 0, 1, 1], :] - inpseg1[:, [0, 1, 0, 1], :], axis=2
-            )
-        
-        refdistance2 = np.sort(refdistance1, axis=1)
-        inpdistance2 = np.sort(inpdistance1, axis=1)
-        ref_indices2 = np.argsort(refdistance1, axis=1)
-        inp_indices2 = np.argsort(inpdistance1, axis=1)
-
-        mask1 = np.abs(refdistance2 - inpdistance2) < length_tolerance
-        mask2 = mask1.all(axis=1)
-        indices4 = indices3[mask2]
-        
-        ref_indices3 = np.empty((2*indices4.shape[0], 4))
-        inp_indices3 = np.empty((2*indices4.shape[0], 4))
-        ref_indices3[0::2] = ref_indices2[indices4[:, 0]]
-        ref_indices3[1::2] = ref_indices2[indices4[:, 1]]
-        inp_indices3[0::2] = inp_indices2[indices4[:, 0]]
-        inp_indices3[1::2] = inp_indices2[indices4[:, 1]]
-        #これはrefcos = np.dot(refvect_norm, refvect_norm.T)inpcos = np.dot(inpvect_norm, inpvect_norm.T))でした。
-        
-        reflist2 = np.empty((2*indices4.shape[0], 3, 2))
-        inplist2 = np.empty((2*indices4.shape[0], 3, 2))
-        reflist2[0::2] = reflist1[indices4[:, 0]]
-        reflist2[1::2] = reflist1[indices4[:, 1]]
-        inplist2[0::2] = inplist1[indices4[:, 0]]
-        inplist2[1::2] = inplist1[indices4[:, 1]]
-
-        first_element_diff = ref_indices3[:, 0] - inp_indices3[:, 0]
-        mask3 = first_element_diff == 0
-
-
-        reflist3 = reflist2[:, :2, :]
-        inplist3 = np.empty_like(reflist3)
-
-        inplist3[mask3, :, :] = inplist2[mask3][:, :2, :]
-        inplist3[~mask3, :, :] = inplist2[~mask3][:, [1, 0], :]
-
-        reflist4 = reflist3[:, 0, :]
-        inplist4 = inplist3[:, 0, :]
-        reflist5 = reflist3[:, 1, :]
-        inplist5 = inplist3[:, 1, :]
-
-        matched_pair1 = np.array([reflist4, inplist4])
-        matched_pair2 = np.array([reflist5, inplist5])
-
-        matched_pair1 = matched_pair1.transpose(1, 0, 2)
-        matched_pair2 = matched_pair2.transpose(1, 0, 2)
-
-        matched_pair = np.empty((matched_pair1.shape[0] + matched_pair2.shape[0], 2, 2), dtype=matched_pair1.dtype)
-        matched_pair[0::2] = matched_pair1
-        matched_pair[1::2] = matched_pair2
-
-
-        return matched_pair
-
-        
-    def one_point_match(incoords, refcoords):#一番明るさの近いやつでいいや 距離？じゃね？
-        #print('one point match')
-        difflist = []
-        for index1 in range(len(refcoords)):
-            x1 = refcoords[index1][0]
-            y1 = refcoords[index1][1]
-            m1 = refcoords[index1][2]
-            for index2 in range(len(incoords)):
-                x2 = incoords[index2][0]
-                y2 = incoords[index2][1]
-                m2 = incoords[index2][2]
-
-                magdiff = abs(m1 - m2)
-                difflist.append([(x1, y1), (x2, y2), magdiff])
-
-        match_coo = min(difflist, key=lambda x:x[2])
-
-        return [match_coo]
-
-    #途中ううううううう 2024/05/16
-    refcoords = read_coofile(referancef)
-    inpcoords = read_coofile(inputf)
-
-    if len(refcoords) == 0 or len(inpcoords) == 0:
-        raise Exception('座標がありません')
-    refseg = calculate_segments(refcoords)
-    inpseg = calculate_segments(inpcoords)
-    if len(refseg) == 0 or len(inpseg) == 0:
-        return None#えーん
-        matched_coo = one_point_match(inpcoords, refcoords)
-    else:
-        matched_coo = match_segments(inpseg, refseg)
-    # write .match
-
-    if matched_coo.size == 0:
-        print()
-        return None
-
-    with open(outputf, 'w') as f1:
-        f1.write(
-            f'# Input: {inputf}\n'
-            f'# Reference: {referancef}\n'
-            f'# Column definitions\n'
-            f'#    Column 1: X reference coordinate\n'
-            f'#    Column 2: Y reference coordinate\n'
-            f'#    Column 3: X input coordinate\n'
-            f'#    Column 4: Y input coordinate\n\n'
-        )
-        
-        #print(f'testtttttttttttttttt, {matched_coo}, {matched_coo.shape}')
-        for coo_varr in matched_coo:
-            #print('testttttttttt2', coo)
-            #print(coo_varr[0][0])
-            #print(coo_varr[0][0].shape)
-            f1.write(
-                f'   '
-                '{:<7}'.format(coo_varr[0][0].item())+'   '
-                '{:<7}'.format(coo_varr[0][1].item())+'   '
-                '{:<7}'.format(coo_varr[1][0].item())+'   '
-                '{:<7}'.format(coo_varr[1][1].item())+'\n'
-                )
-    return outputf
-"""
 
 def match_checker(checklist):
     #print('check すっぞ')
@@ -635,39 +408,17 @@ def do_starfind(fitslist, param, optkey, infrakey):
     optcoolist = {}
     infstarlist = {}
     infcoolist = {}
-    """
-    def iterate_part(fitslist0, param, h_threshold=10, l_threshold=9, interval=0.2):
-        starnumlist = [0]
-        minstarnum = 3
-        maxstarnum = 40
-        renum = [0, 0]
-        l_threshold_org = l_threshold
-        while (min(starnumlist) < minstarnum or max(starnumlist) > maxstarnum) and l_threshold > 2.0:
-            threshold_range = [l_threshold, h_threshold, interval]
-            starnumlist, coordsfilelist, index0 = starfind_center3(fitslist0, param, threshold_range, minstarnum, maxstarnum)
-            #print(starnumlist)###
-            fitslist0 = fitslist0[index0:] + fitslist0[:index0]
-
-            if min(starnumlist) < minstarnum:
-                l_threshold -= 1
-                h_threshold -= 1
-                renum[0] = 1
-                if renum == [1, 1]:
-                    print(f'{fitslist0[0]} is low')
-                    del fitslist0[0]
-                    print(f'reject {fitslist0[0]}')       
-
-            elif max(starnumlist) > maxstarnum:
-                l_threshold += 1
-                h_threshold += 1
-                renum[1] = 1
-                if renum == [1, 1]:
-                    print(f'{fitslist0[0]} is high')
-
-        return starnumlist, coordsfilelist
-    """
 
     def iterate_part(fitslist0, param, h_threshold=10, l_threshold=9, interval=0.2):
+        band = fitslist0[0][0]
+        pixscale = {
+        'g':param.pixscale_g, 'i':param.pixscale_i,
+        'j':param.pixscale_j, 'h':param.pixscale_h, 'k':param.pixscale_k
+        }
+        satcount = {
+        'g':param.g_satcount, 'i':param.i_satcount,
+        'j':param.j_satcount, 'h':param.h_satcount, 'k':param.k_satcount
+        }
         maxstar = {
         'g':param.g_maxstarnum, 'i':param.i_maxstarnum,
         'j':param.j_maxstarnum, 'h':param.h_maxstarnum, 'k':param.k_maxstarnum
@@ -679,7 +430,7 @@ def do_starfind(fitslist, param, optkey, infrakey):
         minstarnum = 20
         maxstarnum = maxstar[fitslist0[0][0]]
         threshold_range = [l_threshold, h_threshold, interval]
-        starnumlist, coordsfilelist, index0 = starfind_center3(fitslist0, param, threshold_range, minstarnum, maxstarnum)
+        starnumlist, coordsfilelist, index0 = starfind_center3(fitslist0, pixscale[band], satcount[band], threshold_range, minstarnum, maxstarnum)
 
         #print(f'starnumlist\n{starnumlist}')
         #print(f'coordsflelist\n{coordsfilelist}')
@@ -1035,10 +786,10 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
 
 def main(fitslist, param):
      
-    subprocess.run('rm *.match' ,shell=True)
-    subprocess.run('rm *geo*' ,shell=True)
-    subprocess.run('rm *.coo' ,shell=True)
-    subprocess.run('rm *_xysh*' ,shell=True)
+    subprocess.run('rm *.match' ,shell=True, stderr=subprocess.DEVNULL)
+    subprocess.run('rm *geo*' ,shell=True, stderr=subprocess.DEVNULL)
+    subprocess.run('rm *.coo' ,shell=True, stderr=subprocess.DEVNULL)
+    subprocess.run('rm *_xysh*' ,shell=True, stderr=subprocess.DEVNULL)
 
     #base の認識
 
