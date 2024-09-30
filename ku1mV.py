@@ -428,11 +428,14 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		sys.exit()
 
 	if param.flatdiv == 1:
-		print('yetyetyet')
-		sys.exit()
+	
 		fitslist = glob_latestproc(bands, fitspro)
-		flat_sky.flat_division(fitslist)
-		fitspro.append('fl')
+		varr = flat_sky.flat_division(bands, fitslist)
+		if varr == 0:
+			fitspro.append('fl')
+		else:
+			print(f'do not execute flat_division')
+		
 	
 	if param.cut == 1:
 		fitslist = glob_latestproc(bands, fitspro)
@@ -482,7 +485,7 @@ def execute_code(param, objparam, log, bands='gijhk'):
 	if param.comb_all == 1:
 		print('comb_all')
 		fitslist = glob_latestproc2(bands, fitspro)
-		com_p.comb_all(fitslist, argvs[1], argvs[2])
+		com_p.comb_all(fitslist, argvs[2], argvs[1])
 
 	if param.aperture_phot == 1:
 		print('phot')

@@ -16,18 +16,21 @@ import bottom
 
 
 
-def flat_division(inlist):
+def flat_division(bands, inlist):
     
     flats = {}
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    for i1 in 'jhk':
+    for i1 in bands:
         flat_path = os.path.join(script_dir, 'lib', f'{i1}*.fits')
         flats[i1] = glob.glob(flat_path)
+        if not flats[i1]:
+            return 1
         
     for i2 in inlist:
-        print(i2, '/', flats[0],  re.sub(r'.fits', r'_fl.fits', i2))
-        bottom.imarith(i2, '/', flats[i2[0]],  re.sub(r'.fits', r'_fl.fits', i2))
+        print(i2, '/', flats[i2[0]][0],  re.sub(r'.fits', r'_fl.fits', i2))
+        bottom.imarith(i2, '/', flats[i2[0]][0],  re.sub(r'.fits', r'_fl.fits', i2))
 
+    return 0
 
 def method2_1(fitslist):
     # skylevel subtraction

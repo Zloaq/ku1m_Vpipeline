@@ -1,6 +1,8 @@
 #!/opt/anaconda3/envs/p11/bin/python3
 
 import subprocess
+import shutil
+import tempfile
 import re
 import os
 
@@ -22,6 +24,25 @@ def save_shebang(file_path):
         if first_line.startswith('#!'):
             return first_line[2:]
     return None
+
+
+def save_lib(backup_dir, lib_dir):
+    if os.path.exists(backup_dir):
+        # バックアップディレクトリからlibディレクトリにコピー
+        shutil.copytree(backup_dir, lib_dir, dirs_exist_ok=True)
+        print(f"lib directory restored from {backup_dir}")
+    else:
+        print(f"Backup directory not found: {backup_dir}")
+
+
+def restore_lib_files(backup_dir, lib_dir):
+    if os.path.exists(backup_dir):
+        # バックアップディレクトリからlibディレクトリにコピー
+        shutil.copytree(backup_dir, lib_dir, dirs_exist_ok=True)
+        print(f"lib directory restored from {backup_dir}")
+    else:
+        print(f"Backup directory not found: {backup_dir}")
+
 
 
 def git_pull():
@@ -53,14 +74,19 @@ if __name__ == "__main__":
     path_program = os.path.abspath(__file__)
     dir_of_program = os.path.dirname(path_program)
     param_file = os.path.join(dir_of_program, 'main.param')
+    lib_dir = os.path.join(dir_of_program, 'lib')
+    backup_dir = tempfile.mkdtemp(prefix="lib_backup_")
 
     saved_dir_names = save_directory_names(param_file)
-
     shebang = save_shebang(path_program)
+    save_lib(backup_dir, lib_dir)
+
     comm = os.path.join(dir_of_program, 'ch_shebang.sh')
     git_pull()
     subprocess.run([comm, shebang], stdout=subprocess.DEVNULL)
 
     restore_directory_names(param_file, saved_dir_names)
+    restore_lib_files(backup_dir, lib_dir)
+    shutil.rmtree(backup_dir)
 
     print("Update completed")
