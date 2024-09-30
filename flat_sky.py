@@ -26,8 +26,7 @@ def flat_division(bands, inlist):
         if not flats[i1]:
             return 1
         
-    for i2 in inlist:
-        print(i2, '/', flats[i2[0]][0],  re.sub(r'.fits', r'_fl.fits', i2))
+    for i2 in tqdm(inlist, desc='{:<13}'.format('flat div')):
         bottom.imarith(i2, '/', flats[i2[0]][0],  re.sub(r'.fits', r'_fl.fits', i2))
 
     return 0
