@@ -141,6 +141,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
     
     coordsfilelist = []
     starnumlist = []
+    threshold_lside = []
     
     #print(f'{band} band threshold range = {searchrange}')
 
@@ -181,6 +182,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
                     center_list.extend(centers)
                 write_to_txt(center_list, 'temp.coo')
                 coordsfile = re.sub('.fits', '.coo', filename)
+                #これで時間食ってる
                 bottom.center(filename, coordsfile, 'temp.coo')
                 starnum, file = chose_unique_coords(coordsfile)
                 #print(f'{filename}, {searchrange0}')
@@ -208,9 +210,10 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
             coordsfilelist.append(file)
             starnumlist.append(starnum)
             iterate += 1
+            threshold_lside.append(searchrange0[0])
             pbar.update(1)
 
-    return starnumlist, coordsfilelist, iterate
+    return starnumlist, coordsfilelist, threshold_lside
 
 
 def triangle_match(inputf, referencef, outputf, match_threshold=0.05):
@@ -409,6 +412,8 @@ def do_starfind(fitslist, param, optkey, infrakey):
     optcoolist = {}
     infstarlist = {}
     infcoolist = {}
+    opt_l_threshold = {}
+    inf_l_threshold = {}
 
     def iterate_part(fitslist0, param, h_threshold=10, l_threshold=9, interval=0.2):
         band = fitslist0[0][0]
@@ -431,12 +436,12 @@ def do_starfind(fitslist, param, optkey, infrakey):
         minstarnum = 20
         maxstarnum = maxstar[fitslist0[0][0]]
         threshold_range = [l_threshold, h_threshold, interval]
-        starnumlist, coordsfilelist, index0 = starfind_center3(fitslist0, pixscale[band], satcount[band], threshold_range, minstarnum, maxstarnum)
+        starnumlist, coordsfilelist, l_threshold1 = starfind_center3(fitslist0, pixscale[band], satcount[band], threshold_range, minstarnum, maxstarnum)
 
         #print(f'starnumlist\n{starnumlist}')
         #print(f'coordsflelist\n{coordsfilelist}')
 
-        return starnumlist, coordsfilelist
+        return starnumlist, coordsfilelist, l_threshold1
 
     def calc_threshold(fitslist0):
         satcount = {
@@ -467,33 +472,35 @@ def do_starfind(fitslist, param, optkey, infrakey):
         for varr in optkey:
             #threshold1 = calc_threshold(fitslist[varr])
             #optstarlist[varr], optcoolist[varr] = iterate_part(fitslist[varr], param, threshold1)
-            optstarlist[varr], optcoolist[varr] = iterate_part(fitslist[varr], param, 30, 26, 2)
+            optstarlist[varr], optcoolist[varr], opt_l_threshold[varr] = iterate_part(fitslist[varr], param, 30, 26, 2)
 
     if infrakey:
         for varr in infrakey:
             #threshold1 = calc_threshold(fitslist[varr])
             #infstarlist[varr], infcoolist[varr] = iterate_part(fitslist[varr], param, threshold1)
-            infstarlist[varr], infcoolist[varr] = iterate_part(fitslist[varr], param, 15, 14)    
+            infstarlist[varr], infcoolist[varr], inf_l_threshold[varr] = iterate_part(fitslist[varr], param, 15, 14)    
 
-    return optstarlist, optcoolist, infstarlist, infcoolist
+    return optstarlist, optcoolist, infstarlist, infcoolist, opt_l_threshold, inf_l_threshold
 
 
 
-def check_starnum(optstarlist, optcoolist, infstarlist, infcoolist):
+def check_starnum(optstarlist, optcoolist, infstarlist, infcoolist, opt_l_threshold, inf_l_threshold):
     
     for varr in optstarlist:
         optmed = statistics.median(optstarlist[varr])
         optstd = statistics.stdev(optstarlist[varr])
-        optfew = [i for i, num in enumerate(optstarlist[varr]) if abs(num  - optmed) > 3 * optstd]
+        optfew = [i for i, num in enumerate(optstarlist[varr]) if optmed - num > 2 * optstd]
         for varr2 in optfew:
-            print(f"few stars in {optcoolist[varr][varr2][:-4]}.fits")
+            if opt_l_threshold[varr2]==2.0:
+                print(f"few stars in {optcoolist[varr][varr2][:-4]}.fits")
 
     for varr in infstarlist:
         infmed = statistics.median(infstarlist[varr])
         infstd = statistics.stdev(infstarlist[varr])
-        inffew = [i for i, num in enumerate(infstarlist[varr]) if abs(num  - infmed) > 3 * infstd]
+        inffew = [i for i, num in enumerate(infstarlist[varr]) if infmed - num > 2 * infstd]
         for varr2 in inffew:
-            print(f"few stars in {infcoolist[varr][varr2][:-4]}.fits")
+            if inf_l_threshold[varr2]==2.0:
+                print(f"few stars in {infcoolist[varr][varr2][:-4]}.fits")
 
 
 
@@ -825,12 +832,15 @@ def main(fitslist, param):
     infstarlist = result_varr[2]
     infcoolist  = result_varr[3]
 
+    opt_l_threshold = result_varr[4]
+    inf_l_threshold = result_varr[5]
+
     #星が見つからないとき、この辺で終了した方がいいかもな。
     if not optcoolist and not infcoolist:
         print('if not optcoolist and not infracoolist:')
         sys.exit()
 
-    check_starnum(optstarlist, optcoolist, infstarlist, infcoolist)
+    check_starnum(optstarlist, optcoolist, infstarlist, infcoolist, opt_l_threshold, inf_l_threshold)
 
     
     result_varr = do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist)
