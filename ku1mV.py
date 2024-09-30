@@ -482,7 +482,6 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		com_p.comb_pset(fitslist)
 
 	if param.comb_all == 1:
-		print('comb_all')
 		fitslist = glob_latestproc2(bands, fitspro)
 		com_p.comb_all(fitslist, argvs[2], argvs[1])
 
