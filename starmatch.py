@@ -5,6 +5,7 @@ import re
 import sys
 import math
 import subprocess
+import statistics
 import numpy as np
 import pandas as pd
 from scipy import ndimage
@@ -477,6 +478,25 @@ def do_starfind(fitslist, param, optkey, infrakey):
     return optstarlist, optcoolist, infstarlist, infcoolist
 
 
+
+def check_starnum(optstarlist, optcoolist, infstarlist, infcoolist):
+    
+    for varr in optstarlist:
+        optmed = statistics.median(optstarlist[varr])
+        optstd = statistics.stdev(optstarlist[varr])
+        optfew = [i for i, num in enumerate(optstarlist[varr]) if abs(num  - optmed) > 2 * optstd]
+        for varr2 in optfew:
+            print(f"few stars in {optcoolist[varr2][:-4]}.fits")
+
+    for varr in infstarlist:
+        infmed = statistics.median(infstarlist[varr])
+        infstd = statistics.stdev(infstarlist[varr])
+        inffew = [i for i, num in enumerate(infstarlist[varr]) if abs(num  - infmed) > 2 * infstd]
+        for varr2 in inffew:
+            print(f"few stars in {infcoolist[varr2][:-4]}.fits")
+
+
+
 def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
 
     opt_match = {}
@@ -486,23 +506,24 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
     opt_matchedf = {}
     inf_matchedf = {}
 
-    if optcoolist:
-        optcommon = set(s[1:-4] for s in optcoolist[next(iter(optcoolist))])
-        optbase   = sorted(optcommon)[0]
-    else:
-        optcommon = set()
-
     match_threshold = {
         'g':param.g_threshold, 'i':param.i_threshold,
         'j':param.j_threshold, 'h':param.h_threshold, 'k':param.k_threshold
         }
-    
+
+    if optcoolist:
+        optcommon = {s[1:-4] for s in optcoolist[next(iter(optcoolist))]}
+        for key in optcoolist:
+            optcommon &= {s[1:-4] for s in optcoolist[key]}
+        optbase = sorted(optcommon)[0]
+    else:
+        optcommon = set()
 
     for varr in optcoolist:
         if optcoolist[varr] and min(optstarlist[varr]) > 3:
             opt_match[varr] = 1
             opt_matchedf[varr] = []
-            tempfits = re.sub('.coo', '.fits', optcoolist[varr][0])
+            tempfits = f"{varr}{optbase}.fits"
             hdu = fits.open(tempfits)
             base_rotate = float(hdu[0].header['OFFSETRO']) or 0
             opt_matchbase[varr] = optbase
@@ -514,28 +535,29 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                 move_rotate = float(hdu[0].header['OFFSETRO']) or 0
                 rotatediff = move_rotate - base_rotate
                 outf = re.sub(r'.coo', r'.match', filename)
-                outfvarr = triangle_match(filename, optcoolist[varr][0], outf, match_threshold[varr])
+                referencef = f"{varr}{optbase}.coo"
+                outfvarr = triangle_match(filename, referencef, outf, match_threshold[varr])
                 if outfvarr == None:
                     continue
                 opt_matchedf[varr].append(outfvarr)
         else:
-            opt_matchbase[varr] = optcommon
+            opt_matchbase[varr] = optbase
             opt_match[varr] = 0
 
+
     if infcoolist:
-        infcommon = set(s[1:-4] for s in infcoolist[next(iter(infcoolist))])
-        infbase   = sorted(infcommon)[0]
+        infcommon = {s[1:-4] for s in infcoolist[next(iter(infcoolist))]}
+        for key in infcoolist:
+            infcommon &= {s[1:-4] for s in infcoolist[key]}
+        infbase = sorted(infcommon)[0]
     else:
         infcommon = set()
-
-    
-    #print(f'infcommon = {infcommon}')
 
     for varr in infcoolist:
         if infcoolist[varr] and min(infstarlist[varr]) > 3:
             inf_match[varr] = 1
             inf_matchedf[varr] = []
-            tempfits = re.sub('.coo', '.fits', infcoolist[varr][0])
+            tempfits = f"{varr}{infbase}.fits"
             hdu = fits.open(tempfits)
             base_rotate = float(hdu[0].header['OFFSETRO']) or 0
             inf_matchbase[varr] = infbase
@@ -547,17 +569,16 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                 move_rotate = float(hdu[0].header['OFFSETRO']) or 0
                 rotatediff = move_rotate - base_rotate
                 outf = re.sub(r'.coo', r'.match', filename)
-                outfvarr = triangle_match(filename, infcoolist[varr][0], outf, match_threshold[varr])
+                referencef = f"{varr}{infbase}.coo"
+                outfvarr = triangle_match(filename, referencef, outf, match_threshold[varr])
                 if outfvarr == None:
                     continue
                 inf_matchedf[varr].append(outfvarr)
         else:
-            inf_matchbase[varr] = infcommon
+            inf_matchbase[varr] = infbase
             inf_match[varr] = 0
 
-    #この辺で match checker を入れて、coo ファイルにちゃんと書き込まれているか確認
-    #星検出してるのに、match できていないものを検出。
-    #coolist に入っているもののうち、matchが行われていないものと、matchできていないもの。
+    
     if opt_match:
         for varr in opt_matchedf:
             if opt_match[varr] == 1:
@@ -571,6 +592,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                 matched_num = match_checker(inf_matchedf[varr])
                 if matched_num < 3:
                     inf_match[varr] == 0
+
     
     return opt_match, opt_matchbase, opt_matchedf, inf_match, inf_matchbase, inf_matchedf
 
@@ -808,7 +830,8 @@ def main(fitslist, param):
         print('if not optcoolist and not infracoolist:')
         sys.exit()
 
-    #print(f'starnum \n{infstarlist}')
+    check_starnum(optstarlist, optcoolist, infstarlist, infcoolist)
+
     
     result_varr = do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist)
 
@@ -818,6 +841,10 @@ def main(fitslist, param):
     inf_match    = result_varr[3]
     inf_matchb   = result_varr[4]
     inf_matchedf = result_varr[5]
+
+    if all(value == 0 for value in opt_match.values()) and all(value == 0 for value in inf_match.values()):
+        print(f'all matches failed')
+        sys.exit()
 
     #何をreturn するかはその後ができてから。
     result_varr = do_geomap(fitslist, opt_match, opt_matchedf, inf_match, inf_matchedf)
