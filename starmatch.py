@@ -484,14 +484,14 @@ def check_starnum(optstarlist, optcoolist, infstarlist, infcoolist):
     for varr in optstarlist:
         optmed = statistics.median(optstarlist[varr])
         optstd = statistics.stdev(optstarlist[varr])
-        optfew = [i for i, num in enumerate(optstarlist[varr]) if abs(num  - optmed) > 2 * optstd]
+        optfew = [i for i, num in enumerate(optstarlist[varr]) if abs(num  - optmed) > 3 * optstd]
         for varr2 in optfew:
             print(f"few stars in {optcoolist[varr][varr2][:-4]}.fits")
 
     for varr in infstarlist:
         infmed = statistics.median(infstarlist[varr])
         infstd = statistics.stdev(infstarlist[varr])
-        inffew = [i for i, num in enumerate(infstarlist[varr]) if abs(num  - infmed) > 2 * infstd]
+        inffew = [i for i, num in enumerate(infstarlist[varr]) if abs(num  - infmed) > 3 * infstd]
         for varr2 in inffew:
             print(f"few stars in {infcoolist[varr][varr2][:-4]}.fits")
 
