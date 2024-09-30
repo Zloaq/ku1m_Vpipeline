@@ -415,7 +415,7 @@ def do_starfind(fitslist, param, optkey, infrakey):
     opt_l_threshold = {}
     inf_l_threshold = {}
 
-    def iterate_part(fitslist0, param, h_threshold=10, l_threshold=9, interval=0.2):
+    def iterate_part(fitslist0, param, l_threshold=9, h_threshold=10, interval=0.2):
         band = fitslist0[0][0]
         pixscale = {
         'g':param.pixscale_g, 'i':param.pixscale_i,
@@ -472,13 +472,13 @@ def do_starfind(fitslist, param, optkey, infrakey):
         for varr in optkey:
             #threshold1 = calc_threshold(fitslist[varr])
             #optstarlist[varr], optcoolist[varr] = iterate_part(fitslist[varr], param, threshold1)
-            optstarlist[varr], optcoolist[varr], opt_l_threshold[varr] = iterate_part(fitslist[varr], param, 30, 26, 2)
+            optstarlist[varr], optcoolist[varr], opt_l_threshold[varr] = iterate_part(fitslist[varr], param, 26, 30, 2)
 
     if infrakey:
         for varr in infrakey:
             #threshold1 = calc_threshold(fitslist[varr])
             #infstarlist[varr], infcoolist[varr] = iterate_part(fitslist[varr], param, threshold1)
-            infstarlist[varr], infcoolist[varr], inf_l_threshold[varr] = iterate_part(fitslist[varr], param, 15, 14)    
+            infstarlist[varr], infcoolist[varr], inf_l_threshold[varr] = iterate_part(fitslist[varr], param, 14, 15)    
 
     return optstarlist, optcoolist, infstarlist, infcoolist, opt_l_threshold, inf_l_threshold
 
