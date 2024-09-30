@@ -462,7 +462,6 @@ def do_starfind(fitslist, param, optkey, infrakey):
 
         return recom_threshold
 
-
     if optkey:
         for varr in optkey:
             #threshold1 = calc_threshold(fitslist[varr])

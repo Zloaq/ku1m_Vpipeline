@@ -442,7 +442,6 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		bottom.cut(fitslist, param)
 		fitspro.append('cut')
 
-
 	if param.gflip == 1:
 		fitslist = glob_latestproc2(bands, fitspro)
 		if 'g' in fitslist:
