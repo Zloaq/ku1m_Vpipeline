@@ -182,7 +182,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
                     center_list.extend(centers)
                 write_to_txt(center_list, 'temp.coo')
                 coordsfile = re.sub('.fits', '.coo', filename)
-                #これで時間食ってる
+                #多分これで時間食ってる
                 bottom.center(filename, coordsfile, 'temp.coo')
                 starnum, file = chose_unique_coords(coordsfile)
                 #print(f'{filename}, {searchrange0}')
@@ -491,7 +491,7 @@ def check_starnum(optstarlist, optcoolist, infstarlist, infcoolist, opt_l_thresh
         optstd = statistics.stdev(optstarlist[varr])
         optfew = [i for i, num in enumerate(optstarlist[varr]) if optmed - num > 2 * optstd]
         for varr2 in optfew:
-            if opt_l_threshold[varr2]==2.0:
+            if opt_l_threshold[varr][varr2]==2.0:
                 print(f"few stars in {optcoolist[varr][varr2][:-4]}.fits")
 
     for varr in infstarlist:
@@ -499,7 +499,7 @@ def check_starnum(optstarlist, optcoolist, infstarlist, infcoolist, opt_l_thresh
         infstd = statistics.stdev(infstarlist[varr])
         inffew = [i for i, num in enumerate(infstarlist[varr]) if infmed - num > 2 * infstd]
         for varr2 in inffew:
-            if inf_l_threshold[varr2]==2.0:
+            if inf_l_threshold[varr][varr2]==2.0:
                 print(f"few stars in {infcoolist[varr][varr2][:-4]}.fits")
 
 
