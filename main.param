@@ -7,7 +7,7 @@ work_dir        '/Users/motomo/iriki/workdir/{objectname}/{date}'
 
 #----------flat_sky_param------------
 quicklook       0
-flatdiv         1
+flatdiv         0
 cut             1
 gflip           1
 sub_skylev      1

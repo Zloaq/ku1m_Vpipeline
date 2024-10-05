@@ -22,7 +22,7 @@ import bottom
 
 import matplotlib.pyplot as plt
 
-def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], minstarnum=0, maxstarnum=100):
+def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], minstarnum=0, maxstarnum=100, minthreshold=1.5):
     
     def squareness(region_slice):
         width = region_slice[1].stop - region_slice[1].start
@@ -87,7 +87,6 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
             y_indices, x_indices = np.indices(data_slice.shape)
             total = np.sum(data_slice)
             if total == 0:
-                centroids.append((None, None))
                 continue
             y_centroid_local = np.sum(y_indices * data_slice) / total
             x_centroid_local = np.sum(x_indices * data_slice) / total
@@ -143,7 +142,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
             rms = bottom.skystat(filename, 'stddev')
 
             roopnum = [0, 0]
-            while searchrange0[0] >= 2.0:
+            while searchrange0[0] >= minthreshold:
                 center_list = []
                 for threshold in np.arange(searchrange0[0], searchrange0[1], searchrange0[2]):
                     binarized_data = binarize_data(data, threshold, rms)
@@ -163,20 +162,20 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
                 #print(f'{filename}, {searchrange0}')
 
                 if roopnum[0] > 0 and roopnum[1] > 0:
-                    if searchrange0[0] > 2.0:
-                        searchrange0[0] -= 1
-                        searchrange0[1] -= 1
+                    if searchrange0[0] > minthreshold:
+                        searchrange0[0] -= 0.5
+                        searchrange0[1] -= 0.5
                     break
 
-                elif (starnum < minstarnum) & (searchrange0[0] > 2.0):
+                elif (starnum < minstarnum) & (searchrange0[0] > minthreshold):
                     #print(f'retry starfind')
-                    searchrange0[0] -= 1
-                    searchrange0[1] -= 1
+                    searchrange0[0] -= 0.5
+                    searchrange0[1] -= 0.5
                     roopnum[0] += 1
                     continue
                 elif starnum > maxstarnum:
-                    searchrange0[0] += 1
-                    searchrange0[1] += 1
+                    searchrange0[0] += 0.5
+                    searchrange0[1] += 0.5
                     roopnum[1] += 1
                     continue
                 else:
@@ -201,26 +200,34 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05, shift_thre
         coords = np.array([[float(line[0]), float(line[1])] for line in lines])  # coox, cooy,
         return coords
 
-    def compute_triangle_descriptors(coords):
+    def compute_triangle_descriptors(coords, eps=4):
         triangles = list(combinations(coords, 3))
         descriptors = []
+        #print(f'start')
+        #print(f'coords {coords}')
         for tri in triangles:
+            #print(0)
             tri = np.array(tri)
             # 辺の長さを計算
             sides = [np.linalg.norm(tri[i] - tri[j]) for i, j in combinations(range(3), 2)]
+            #print(1)
             sides = np.sort(sides)
-            
+            if any(side < eps for side in sides):
+                continue
+            #print(2)
             #sides = sides / sides[-1]  # 最大の辺の長さで割る
-
             a, b, c = sides
             angles = [
                 np.arccos((b**2 + c**2 - a**2) / (2 * b * c)),
                 np.arccos((a**2 + c**2 - b**2) / (2 * a * c)),
                 np.arccos((a**2 + b**2 - c**2) / (2 * a * b))
             ]
+            #print(3)
             angles = np.sort(angles)
+            #print(4)
             descriptor = np.concatenate([sides, angles])
             descriptors.append((descriptor, tri))
+        #print(f'stop')
         return descriptors
     
     def estimate_affine_matrices(src_triangles, dst_triangles):
@@ -267,6 +274,7 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05, shift_thre
 
         descs_input = np.array([desc[0] for desc in descriptors_input])
         descs_ref = np.array([desc[0] for desc in descriptors_ref])
+
 
         nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(descs_ref)
         distances, indices = nbrs.kneighbors(descs_input)
@@ -538,14 +546,14 @@ def do_starfind(fitslist, param, optkey, infrakey):
 
 
 
-def check_starnum(optstarlist, optcoolist, infstarlist, infcoolist, opt_l_threshold, inf_l_threshold):
+def check_starnum(optstarlist, optcoolist, infstarlist, infcoolist, opt_l_threshold, inf_l_threshold, minthreshold=1.5):
     
     for varr in optstarlist:
         optmed = statistics.median(optstarlist[varr])
         optstd = statistics.stdev(optstarlist[varr])
         optfew = [i for i, num in enumerate(optstarlist[varr]) if optmed - num > 2 * optstd]
         for varr2 in optfew:
-            if opt_l_threshold[varr][varr2]==2.0:
+            if opt_l_threshold[varr][varr2]==minthreshold:
                 print(f"few stars in {optcoolist[varr][varr2][:-4]}.fits")
 
     for varr in infstarlist:
@@ -553,7 +561,7 @@ def check_starnum(optstarlist, optcoolist, infstarlist, infcoolist, opt_l_thresh
         infstd = statistics.stdev(infstarlist[varr])
         inffew = [i for i, num in enumerate(infstarlist[varr]) if infmed - num > 2 * infstd]
         for varr2 in inffew:
-            if inf_l_threshold[varr][varr2]==2.0:
+            if inf_l_threshold[varr][varr2]==minthreshold:
                 print(f"few stars in {infcoolist[varr][varr2][:-4]}.fits")
 
 
@@ -597,7 +605,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                 rotatediff = move_rotate - base_rotate
                 outf = re.sub(r'.coo', r'.match', filename)
                 referencef = f"{varr}{optbase}.coo"
-                #print(f'{filename}')
+                #print(f'filename {filename}')
                 outfvarr = triangle_match(filename, referencef, outf, match_threshold[varr])
                 if outfvarr is None:
                     continue
