@@ -69,11 +69,11 @@ k_minstarnum    10
 
 #--------triangle_match-------------------
 
-g_threshold     0.05
-i_threshold     0.05
-j_threshold     0.095
-h_threshold     0.095
-k_threshold     0.095
+g_threshold     1
+i_threshold     1
+j_threshold     1
+h_threshold     1
+k_threshold     1
 
 #--------geotran_base-------------------
 

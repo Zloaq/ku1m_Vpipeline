@@ -180,9 +180,9 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
 
                     centers = clustar_center(slice_list)
                     center_list.extend(centers)
+                #多分ファイル操作で時間食ってる
                 write_to_txt(center_list, 'temp.coo')
                 coordsfile = re.sub('.fits', '.coo', filename)
-                #多分これで時間食ってる
                 bottom.center(filename, coordsfile, 'temp.coo')
                 starnum, file = chose_unique_coords(coordsfile)
                 #print(f'{filename}, {searchrange0}')
@@ -216,7 +216,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
     return starnumlist, coordsfilelist, threshold_lside
 
 
-def triangle_match(inputf, referencef, outputf, match_threshold=0.05):
+def triangle_match(inputf, referencef, outputf, match_threshold=0.05, shift_threshold=5, rotate_threshold=0.5):
     def read_coofile(infile):
         with open(infile, 'r') as file:
             flines = file.readlines()
@@ -245,16 +245,48 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05):
             descriptor = np.concatenate([sides, angles])
             descriptors.append((descriptor, tri))
         return descriptors
-
-    def match_triangle():
+    
+    def estimate_affine_matrices(src_triangles, dst_triangles):
+        affine_matrices = []
+        for src, dst in zip(src_triangles, dst_triangles):
+            A = []
+            b = []
+            for (x, y), (x_p, y_p) in zip(src, dst):
+                A.append([x, y, 1, 0, 0, 0])
+                A.append([0, 0, 0, x, y, 1])
+                b.append(x_p)
+                b.append(y_p)
+            A = np.array(A)
+            b = np.array(b)
+            h, _, _, _ = np.linalg.lstsq(A, b, rcond=None)
+            affine_matrix = np.array([[h[0], h[1], h[2]],
+                                      [h[3], h[4], h[5]]])
+            affine_matrices.append(affine_matrix)
+        return np.array(affine_matrices)
         
+
+    def evaluate_affine_matrix(matrix, src_points, dst_points, threshold):
+        transformed_points = (matrix[:, :2] @ src_points.T).T + matrix[:, 2]
+        distances = np.linalg.norm(transformed_points - dst_points, axis=1)
+        return np.sum(distances < threshold)
+
+    def calculate_mode(data, binsize):
+        bin_edges = np.arange(np.min(data), np.max(data) + 2*binsize, binsize)
+        counts, bin_edges = np.histogram(data, bins=bin_edges)
+        #print(f'data {data}')
+        #print(f'bin {bin_edges}')
+        print(f'binsize {binsize}')
+        print(f'counts {counts}')
+        max_bin_index = np.argmax(counts)
+        mode_value = (bin_edges[max_bin_index] + bin_edges[max_bin_index + 1]) / 2
+        return mode_value
+    
+    def match_triangle():
         coords_input = read_coofile(inputf)
         coords_ref = read_coofile(referencef)
 
         descriptors_input = compute_triangle_descriptors(coords_input)
         descriptors_ref = compute_triangle_descriptors(coords_ref)
-        #print(f'入力画像の三角形の数: {len(descriptors_input)}')
-        #print(f'参照画像の三角形の数: {len(descriptors_ref)}')
 
         descs_input = np.array([desc[0] for desc in descriptors_input])
         descs_ref = np.array([desc[0] for desc in descriptors_ref])
@@ -262,18 +294,58 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05):
         nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(descs_ref)
         distances, indices = nbrs.kneighbors(descs_input)
 
-        threshold = match_threshold
-        good_matches = distances[:, 0] < threshold
+        good_matches = distances[:, 0] < match_threshold
 
-        matched_triangles_input = [descriptors_input[i][1] for i in range(len(descriptors_input)) if good_matches[i]]
-        matched_triangles_ref = [descriptors_ref[indices[i][0]][1] for i in range(len(descriptors_input)) if good_matches[i]]
+        matched_triangles_input = np.array([descriptors_input[i][1] for i in range(len(descriptors_input)) if good_matches[i]])
+        matched_triangles_ref = np.array([descriptors_ref[indices[i][0]][1] for i in range(len(descriptors_input)) if good_matches[i]])
 
-        #print(f'入力画像の三角形のマッチした数: {len(matched_triangles_input)}')
-        #print(f'参照画像の三角形のマッチした数: {len(matched_triangles_ref)}')
+        if len(matched_triangles_input) == 0:
+            return None
+
+        #print(f'len inp {len(matched_triangles_input)} ref {len(matched_triangles_ref)}')
+        # アフィン変換行列を一括して計算
+        affine_matrices = estimate_affine_matrices(matched_triangles_input, matched_triangles_ref)
+
+        #print(f'affin {affine_matrices}')
+
+        # アフィン変換行列の評価と選択 (成分(1, 3), (2, 3)および回転成分の最頻値を使用して外れ値を除去)
+        t_x = affine_matrices[:, 0, 2]
+        t_y = affine_matrices[:, 1, 2]
+        rotation_cos = affine_matrices[:, 0, 0]
+        rotation_sin = affine_matrices[:, 1, 0]
+
+        # 最頻値を計算
+        #base_t_x = calculate_mode(t_x, binsize=5)
+        #base_t_y = calculate_mode(t_y, binsize=5)
+        #base_rotation_cos = calculate_mode(rotation_cos, binsize=0.2)
+        #base_rotation_sin = calculate_mode(rotation_sin, binsize=0.2)
+
+        # 中央値でもいいかもしれない
+
+        base_t_x = np.median(t_x)
+        base_t_y = np.median(t_y)
+        base_rotation_cos = np.median(rotation_cos)
+        base_rotation_sin = np.median(rotation_sin)
+        
+
+
+        # 最頻値からの差が大きいものを外れ値として除去
+        valid_indices = (
+            (np.abs(t_x - base_t_x) < shift_threshold) &
+            (np.abs(t_y - base_t_y) < shift_threshold) &
+            (np.abs(rotation_cos - base_rotation_cos) < rotate_threshold) &
+            (np.abs(rotation_sin - base_rotation_sin) < rotate_threshold)
+        )
+        filtered_affine_matrices = affine_matrices[valid_indices]
+        filtered_triangles_input = matched_triangles_input[valid_indices]
+        filtered_triangles_ref = matched_triangles_ref[valid_indices]
+
+        if len(filtered_triangles_input) == 0:
+            return None
 
         src_points = []
         dst_points = []
-        for tri_input, tri_ref in zip(matched_triangles_input, matched_triangles_ref):
+        for tri_input, tri_ref in zip(filtered_triangles_input, filtered_triangles_ref):
             for pt_input, pt_ref in zip(tri_input, tri_ref):
                 src_points.append(pt_input)
                 dst_points.append(pt_ref)
@@ -295,8 +367,13 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05):
     matched_coo = match_triangle()
     # write .match
 
+    if matched_coo is None:
+        return None
+
     if matched_coo.size == 0:
         return None
+    
+    #print(f'coo {matched_coo}')
 
     with open(outputf, 'w') as f1:
         f1.write(
@@ -543,8 +620,9 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                 rotatediff = move_rotate - base_rotate
                 outf = re.sub(r'.coo', r'.match', filename)
                 referencef = f"{varr}{optbase}.coo"
+                #print(f'{filename}')
                 outfvarr = triangle_match(filename, referencef, outf, match_threshold[varr])
-                if outfvarr == None:
+                if outfvarr is None:
                     continue
                 opt_matchedf[varr].append(outfvarr)
         else:
@@ -578,7 +656,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                 outf = re.sub(r'.coo', r'.match', filename)
                 referencef = f"{varr}{infbase}.coo"
                 outfvarr = triangle_match(filename, referencef, outf, match_threshold[varr])
-                if outfvarr == None:
+                if outfvarr is None:
                     continue
                 inf_matchedf[varr].append(outfvarr)
         else:
