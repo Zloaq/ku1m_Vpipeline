@@ -49,17 +49,17 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
     def binarize_data(data, threshold, rms):
         return np.array([[1 if d > threshold * rms else 0 for d in r] for r in data])
     
-    def filter_saturate(labeled_image, filtered_data, objects, header):
+    def filter_saturate(labeled_image, filtered_data, object_slices, header):
         #div には対応してない
         skycount = float(header['SKYCOUNT'] or 0)
         saturation_value = float(satcount) - skycount
         saturated_mask = filtered_data >= saturation_value
         saturated_labels = np.unique(labeled_image[saturated_mask])
         
-        templabels = np.arange(1, len(objects) + 1)
+        templabels = np.arange(1, len(object_slices) + 1)
         mask = ~np.isin(templabels, saturated_labels)
         filtered_labels = templabels[mask]
-        filtered_objects = np.array(objects)[mask]
+        filtered_objects = np.array(object_slices)[mask]
         filtered_objects = [tuple(inner_list) for inner_list in filtered_objects.tolist()]
         #print(f'filtered_labels\n{filtered_labels.tolist()}')
         #print(f'filtered_objects\n{tuple(filtered_objects.tolist())}')
@@ -79,65 +79,41 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
 
         return round_clusters, slice_list
     
-    def clustar_center(slices):
-        centers = []
+    def clustar_centroid(data, slices):
+        centroids = []
         for sl in slices:
             y_slice, x_slice = sl
-            if x_slice.stop - x_slice.start < 3 or y_slice.stop - y_slice.start < 3:
+            data_slice = data[y_slice, x_slice]
+            y_indices, x_indices = np.indices(data_slice.shape)
+            total = np.sum(data_slice)
+            if total == 0:
+                centroids.append((None, None))
                 continue
-            center_row = (y_slice.start + y_slice.stop - 1) / 2
-            center_col = (x_slice.start + x_slice.stop - 1) / 2
-            centers.append([center_row, center_col])
-        return centers
+            y_centroid_local = np.sum(y_indices * data_slice) / total
+            x_centroid_local = np.sum(x_indices * data_slice) / total
+            y_centroid_global = y_centroid_local + y_slice.start
+            x_centroid_global = x_centroid_local + x_slice.start
+            centroids.append((y_centroid_global, x_centroid_global))
+        
+        return centroids
+        
 
+    def chose_unique_coords(center_list):
+
+        unique_center_list = []
+        seen = set()
+        for y, x in center_list:
+            y_int, x_int = int(y), int(x)
+            if (y_int, x_int) not in seen:
+                unique_center_list.append((y, x))
+                seen.add((y_int, x_int))
+        
+        return unique_center_list
+    
     def write_to_txt(centers, filename):
         with open(filename, 'w') as f1:
             for center in centers:
                 f1.write(f'{center[1]}  {center[0]}\n')
-
-    def chose_unique_coords(coordsfile):
-        input_file_path = coordsfile
-        with open(input_file_path, 'r') as file:
-            lines = file.readlines()
-
-        header_lines = []
-        data_lines = []
-        for line in lines:
-            if line.startswith('#'):
-                header_lines.append(line)
-            else:
-                data_lines.append(line)
-        """
-        data = []
-        for line in data_lines:
-            parts = line.strip().split()
-            if len(parts) == 8:
-                data.append(parts)
-        """
-        data = [line.strip().split() for line in data_lines if len(line.strip().split()) == 8]
-
-
-        df = pd.DataFrame(data, columns=['XCENTER', 'YCENTER', 'XSHIFT', 'YSHIFT', 'XERR', 'YERR', 'CIER', 'CERROR'])
-        df = df.astype({'XCENTER': 'float', 'YCENTER': 'float', 'XSHIFT': 'float', 'YSHIFT': 'float', 'XERR': 'float', 'YERR': 'float', 'CIER': 'int', 'CERROR': 'str'})
-
-        df['X_INT'] = df['XCENTER'].astype(int)
-        df['Y_INT'] = df['YCENTER'].astype(int)
-        df['COUNT'] = df.groupby(['XCENTER', 'YCENTER'])['XCENTER'].transform('count')
-        idx = df.groupby(['X_INT', 'Y_INT'])['COUNT'].idxmax()
-        result = df.loc[idx, ['XCENTER', 'YCENTER', 'XSHIFT', 'YSHIFT', 'XERR', 'YERR', 'CIER', 'CERROR']].drop_duplicates(subset=['XCENTER', 'YCENTER'])
-
-        starnum = 0
-        with open(coordsfile, 'w') as file:
-            for line in header_lines:
-                file.write(line)
-            result_reset = result.reset_index(drop=True)
-            for index, row in result_reset.iterrows():
-                line = f"{row['XCENTER']:<14.3f} {row['YCENTER']:<11.3f} {row['XSHIFT']:<8.3f} {row['YSHIFT']:<8.3f} {row['XERR']:<8.3f} {row['YERR']:<15.3f} {row['CIER']:<5d} {row['CERROR']:<9s}\n"
-                file.write(line)
-                starnum = index + 1
-
-        return starnum, coordsfile
-
     
     coordsfilelist = []
     starnumlist = []
@@ -171,20 +147,19 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
                 center_list = []
                 for threshold in np.arange(searchrange0[0], searchrange0[1], searchrange0[2]):
                     binarized_data = binarize_data(data, threshold, rms)
-                    filtered_data = filter_data(data, threshold, rms)
                     labeled_image, _ = ndimage.label(binarized_data)
-                    objects = ndimage.find_objects(labeled_image)
-                    filtered_labels, filtered_objects = filter_saturate(labeled_image, filtered_data, objects, header)
+                    object_slices = ndimage.find_objects(labeled_image)
+                    filtered_data = filter_data(data, threshold, rms)
+                    filtered_labels, filtered_objects = filter_saturate(labeled_image, filtered_data, object_slices, header)
 
                     _, slice_list = detect_round_clusters(filtered_labels, filtered_objects, labeled_image)
 
-                    centers = clustar_center(slice_list)
+
+                    centers = clustar_centroid(data, slice_list)
                     center_list.extend(centers)
                 #多分ファイル操作で時間食ってる
-                write_to_txt(center_list, 'temp.coo')
-                coordsfile = re.sub('.fits', '.coo', filename)
-                bottom.center(filename, coordsfile, 'temp.coo')
-                starnum, file = chose_unique_coords(coordsfile)
+                unique_center_list = chose_unique_coords(center_list)
+                starnum = len(unique_center_list)
                 #print(f'{filename}, {searchrange0}')
 
                 if roopnum[0] > 0 and roopnum[1] > 0:
@@ -206,7 +181,9 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
                     continue
                 else:
                     break
-
+            
+            file = f'{filename[:-5]}.coo'
+            write_to_txt(unique_center_list, file)
             coordsfilelist.append(file)
             starnumlist.append(starnum)
             iterate += 1
@@ -555,7 +532,7 @@ def do_starfind(fitslist, param, optkey, infrakey):
         for varr in infrakey:
             #threshold1 = calc_threshold(fitslist[varr])
             #infstarlist[varr], infcoolist[varr] = iterate_part(fitslist[varr], param, threshold1)
-            infstarlist[varr], infcoolist[varr], inf_l_threshold[varr] = iterate_part(fitslist[varr], param, 14, 15)    
+            infstarlist[varr], infcoolist[varr], inf_l_threshold[varr] = iterate_part(fitslist[varr], param, 14, 15, 0.2)    
 
     return optstarlist, optcoolist, infstarlist, infcoolist, opt_l_threshold, inf_l_threshold
 
