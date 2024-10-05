@@ -44,10 +44,10 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
         return filling_ratio
 
     def filter_data(data, threshold, rms):
-        return np.array([[d if d > threshold * rms else 0 for d in r] for r in data])
+        return np.where(data > threshold * rms, data, 0)
     
     def binarize_data(data, threshold, rms):
-        return np.array([[1 if d > threshold * rms else 0 for d in r] for r in data])
+        return data > threshold * rms
     
     def filter_saturate(labeled_image, filtered_data, object_slices, header):
         #div には対応してない

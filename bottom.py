@@ -114,42 +114,44 @@ def xflip(fitslist):
         data = np.flip(data, axis=1)
         fits.writeto(varr, data, hdr, overwrite=True)
 
-
-
 def skystat(fitsname, method, nclip=3, clip_threshold=3):
+
+    def compute_mode(data, bins=1000):
+        hist, bin_edges = np.histogram(data, bins=bins)
+        max_bin_index = np.argmax(hist)
+        mode_value = (bin_edges[max_bin_index] + bin_edges[max_bin_index + 1]) / 2
+        return mode_value
     
     data = fits.getdata(fitsname)
     flat_data = data.flatten()
-    threshold = np.percentile(flat_data, 100)
-    backgroud_data = flat_data[flat_data <= threshold]
-    mode_value, count = mode(backgroud_data)
-    median_value = np.median(backgroud_data)
-
+    backgroud_data = flat_data.copy()
+    
     if method == 'mode':
+        mode_value = compute_mode(backgroud_data)
         return mode_value
+    
     if method == 'mode,stddev':
-        basis_value = mode_value
+        basis_value = compute_mode(backgroud_data)
+    else:
+        basis_value = np.median(backgroud_data)
     
     for num in range(nclip):
-        
         if 'mode' in method:
-            basis_value, count = mode(backgroud_data)
+            basis_value = compute_mode(backgroud_data)
         else:
             basis_value = np.median(backgroud_data)
         
-        squared_diffs = (backgroud_data - basis_value) ** 2
-        mean_squared_diff = np.mean(squared_diffs)
-        rms = np.sqrt(mean_squared_diff)
+        rms = np.std(backgroud_data)
         lower_bound = basis_value - clip_threshold * rms
         upper_bound = basis_value + clip_threshold * rms
-        backgroud_data = backgroud_data[(backgroud_data >= lower_bound) & (backgroud_data <= upper_bound)]
+        mask = (backgroud_data >= lower_bound) & (backgroud_data <= upper_bound)
+        backgroud_data = backgroud_data[mask]
     
     skyrms = rms
-    backgroud_data = backgroud_data[(backgroud_data <= basis_value)]
+    backgroud_data = backgroud_data[backgroud_data <= basis_value]
     squared_diffs = (backgroud_data - basis_value) ** 2
     mean_squared_diff = np.mean(squared_diffs)
     lowside_rms = np.sqrt(mean_squared_diff)
-
 
     if method == 'stddev':
         return lowside_rms
@@ -159,6 +161,7 @@ def skystat(fitsname, method, nclip=3, clip_threshold=3):
         return basis_value, skyrms
     elif method == 'median,stddev':
         return basis_value, lowside_rms
+
 
 
 def combine(inlist, outname, method, reject='sigclip'):
