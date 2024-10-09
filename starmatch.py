@@ -22,7 +22,7 @@ import bottom
 
 import matplotlib.pyplot as plt
 
-def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], minstarnum=4, maxstarnum=100, minthreshold=1.5):
+def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], minstarnum=4, maxstarnum=100, minthreshold=2.0):
     
     def squareness(region_slice):
         width = region_slice[1].stop - region_slice[1].start
@@ -558,7 +558,7 @@ def do_starfind(fitslist, param, optkey, infrakey):
 
 
 
-def check_starnum(optstarlist, optcoolist, infstarlist, infcoolist, opt_l_threshold, inf_l_threshold, minthreshold=1.5):
+def check_starnum(optstarlist, optcoolist, infstarlist, infcoolist, opt_l_threshold, inf_l_threshold, minthreshold=2.0):
     
     for varr in optstarlist:
         optmed = statistics.median(optstarlist[varr])
