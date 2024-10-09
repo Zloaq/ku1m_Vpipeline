@@ -67,7 +67,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
         
         return filtered_labels.tolist(), filtered_objects
 
-    def detect_round_clusters(filtered_labels, filtered_objects, labeled_image, square=12, fillrate=0.25):
+    def detect_round_clusters(filtered_labels, filtered_objects, labeled_image, square=5, fillrate=0.25):
         squareness_values = np.array([squareness(region_slice) for region_slice in filtered_objects])
         filling_rates = np.array([filling_rate(filtered_labels[i], region_slice, labeled_image) 
                                 for i, region_slice in enumerate(filtered_objects)])
@@ -79,6 +79,37 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
 
         return round_clusters, slice_list
     
+    def clustar_centroid(data, slices, padding=2):
+        max_y, max_x = data.shape
+
+        # スライスのリストを numpy 配列に変換
+        slices_array = np.array([[sl[0].start, sl[0].stop, sl[1].start, sl[1].stop] for sl in slices])
+        #print(f'aaaa{slices_array}')
+        # パディング適用後のスライス範囲を計算
+        y_starts = np.clip(slices_array[:, 0] - padding, 0, max_y)
+        y_stops = np.clip(slices_array[:, 1] + padding, 0, max_y)
+        x_starts = np.clip(slices_array[:, 2] - padding, 0, max_x)
+        x_stops = np.clip(slices_array[:, 3] + padding, 0, max_x)
+
+        centroids = []
+
+        for y_start, y_stop, x_start, x_stop in zip(y_starts, y_stops, x_starts, x_stops):
+            data_slice = data[y_start:y_stop, x_start:x_stop]
+            
+            total = data_slice.sum()
+            if total == 0:
+                continue
+
+            y_indices, x_indices = np.indices(data_slice.shape)
+            y_centroid_local = np.sum(y_indices * data_slice) / total
+            x_centroid_local = np.sum(x_indices * data_slice) / total
+            y_centroid_global = y_centroid_local + y_start
+            x_centroid_global = x_centroid_local + x_start
+            centroids.append((y_centroid_global, x_centroid_global))
+
+        return centroids
+
+    """
     def clustar_centroid(data, slices, padding=2):
         centroids = []
         for sl in slices:
@@ -99,7 +130,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
             centroids.append((y_centroid_global, x_centroid_global))
         
         return centroids
-        
+    """
 
     def chose_unique_coords(center_list, threshold=3):
         # numpy配列に変換
@@ -107,14 +138,11 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
         unique_centers = []
 
         while len(center_array) > 0:
-            # 最初の座標を unique_centers に追加
             ref_point = center_array[0]
             unique_centers.append(ref_point)
 
-            # すべての点との距離を計算
             distances = np.sqrt(np.sum((center_array - ref_point) ** 2, axis=1))
 
-            # 距離がしきい値(threshold)を超える点だけを残す
             center_array = center_array[distances > threshold]
 
         return unique_centers
@@ -136,6 +164,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
     with tqdm(total=len(fitslist), desc=f'{fitslist[0][0]} band starfind') as pbar:
         while iterate <= len(fitslist) - 1:
             filename = fitslist[iterate]
+            #print(f'filenamr {filename}')
             data = fits.getdata(filename)
             header = fits.getheader(filename)
             offra_pix = int(float(header['OFFSETRA'])/pixscale)
@@ -151,9 +180,10 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
             
             rms = bottom.skystat(filename, 'stddev')
 
-            roopnum = [0, 0]
+            loopnum = [0, 0]
             while searchrange0[0] >= minthreshold:
                 center_list = []
+                #print()
                 for threshold in np.arange(searchrange0[0], searchrange0[1], searchrange0[2]):
                     binarized_data = binarize_data(data, threshold, rms)
                     labeled_image, _ = ndimage.label(binarized_data)
@@ -163,30 +193,35 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
 
                     _, slice_list = detect_round_clusters(filtered_labels, filtered_objects, labeled_image)
 
+                    if len(slice_list) == 0:
+                        continue
 
                     centers = clustar_centroid(data, slice_list)
                     center_list.extend(centers)
-                #多分ファイル操作で時間食ってる
+
+                #print(len(center_list))
+                
+
                 unique_center_list = chose_unique_coords(center_list)
                 starnum = len(unique_center_list)
                 #print(f'{filename}, {searchrange0}')
 
-                if roopnum[0] > 0 and roopnum[1] > 0:
+                if loopnum[0] > 0 and loopnum[1] > 0:
                     if searchrange0[0] < minthreshold:
                         searchrange0[0] -= 0.5
                         searchrange0[1] -= 0.5
                     break
 
-                elif (starnum < minstarnum) & (searchrange0[0] > minthreshold):
+                elif (starnum < minstarnum) and (searchrange0[0] > minthreshold):
                     #print(f'retry starfind')
                     searchrange0[0] -= 0.5
                     searchrange0[1] -= 0.5
-                    roopnum[0] += 1
+                    loopnum[0] += 1
                     continue
                 elif starnum > maxstarnum:
                     searchrange0[0] += 0.5
                     searchrange0[1] += 0.5
-                    roopnum[1] += 1
+                    loopnum[1] += 1
                     continue
                 else:
                     break
@@ -213,8 +248,7 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05, shift_thre
     def compute_triangle_descriptors(coords, eps=4):
         triangles = list(combinations(coords, 3))
         descriptors = []
-        #print(f'start')
-        #print(f'coords {coords}')
+
         for tri in triangles:
             #print(0)
             tri = np.array(tri)
@@ -224,8 +258,6 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05, shift_thre
             sides = np.sort(sides)
             if any(side < eps for side in sides):
                 continue
-            #print(2)
-            #sides = sides / sides[-1]  # 最大の辺の長さで割る
             a, b, c = sides
             angles = [
             np.arccos(np.clip((b**2 + c**2 - a**2) / (2 * b * c), -1, 1)),
@@ -295,7 +327,7 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05, shift_thre
         matched_triangles_ref = np.array([descriptors_ref[indices[i][0]][1] for i in range(len(descriptors_input)) if good_matches[i]])
 
         if len(matched_triangles_input) == 0:
-            print(inputf)
+            #print(inputf)
             return None
 
         #print(f'len inp {len(matched_triangles_input)} ref {len(matched_triangles_ref)}')

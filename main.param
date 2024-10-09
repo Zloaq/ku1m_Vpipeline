@@ -27,6 +27,6 @@ lev_fits        1
 sky_fits        0
 geo_fits        0
 
-coo_file        1
-match_file      1
+coo_file        0
+match_file      0
 geo_file        1
