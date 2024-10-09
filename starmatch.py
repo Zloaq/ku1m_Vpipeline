@@ -237,7 +237,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
     return starnumlist, coordsfilelist, threshold_lside
 
 
-def triangle_match(inputf, referencef, outputf, match_threshold=0.05, shift_threshold=5, rotate_threshold=0.5):
+def triangle_match(inputf, referencef, outputf, match_threshold=1, shift_threshold=5, rotate_threshold=0.5):
     def read_coofile(infile):
         with open(infile, 'r') as file:
             flines = file.readlines()
@@ -371,20 +371,14 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05, shift_thre
         if len(filtered_triangles_input) == 0:
             return None
 
-        src_points = []
-        dst_points = []
-        for tri_input, tri_ref in zip(filtered_triangles_input, filtered_triangles_ref):
-            for pt_input, pt_ref in zip(tri_input, tri_ref):
-                src_points.append(pt_input)
-                dst_points.append(pt_ref)
-        src_points = np.array(src_points)
-        dst_points = np.array(dst_points)
+        src_points = np.vstack(filtered_triangles_input)
+        dst_points = np.vstack(filtered_triangles_ref)
+
 
         src_points_unique, indices = np.unique(src_points, axis=0, return_index=True)
         dst_points_unique = dst_points[indices]
 
-        matched_pair = [(dst_points_unique[i], src_points_unique[i]) for i in range(len(dst_points_unique))]
-        matched_pair = np.array(matched_pair)
+        matched_pair = np.stack((dst_points_unique, src_points_unique), axis=1)
         
         #print(f'src\n{src_points_unique}')
         #print(f'dst\n{dst_points_unique}')
