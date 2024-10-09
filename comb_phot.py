@@ -65,6 +65,8 @@ def match_star_coords(fitslist, refcoofile, fwhms=[3, 4, 5]):
 """
 
 
+
+
 def phot(fitslist, coordslist, fwhm):
     print('phot')
 

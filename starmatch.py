@@ -22,7 +22,7 @@ import bottom
 
 import matplotlib.pyplot as plt
 
-def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], minstarnum=0, maxstarnum=100, minthreshold=1.5):
+def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], minstarnum=4, maxstarnum=100, minthreshold=1.5):
     
     def squareness(region_slice):
         width = region_slice[1].stop - region_slice[1].start
@@ -67,7 +67,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
         
         return filtered_labels.tolist(), filtered_objects
 
-    def detect_round_clusters(filtered_labels, filtered_objects, labeled_image, square=3, fillrate=0.5):
+    def detect_round_clusters(filtered_labels, filtered_objects, labeled_image, square=12, fillrate=0.25):
         squareness_values = np.array([squareness(region_slice) for region_slice in filtered_objects])
         filling_rates = np.array([filling_rate(filtered_labels[i], region_slice, labeled_image) 
                                 for i, region_slice in enumerate(filtered_objects)])
@@ -79,11 +79,15 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
 
         return round_clusters, slice_list
     
-    def clustar_centroid(data, slices):
+    def clustar_centroid(data, slices, padding=2):
         centroids = []
         for sl in slices:
             y_slice, x_slice = sl
-            data_slice = data[y_slice, x_slice]
+            y_start = max(y_slice.start - padding, 0)
+            y_stop = min(y_slice.stop + padding, data.shape[0])
+            x_start = max(x_slice.start - padding, 0)
+            x_stop = min(x_slice.stop + padding, data.shape[1])
+            data_slice = data[y_start:y_stop, x_start:x_stop]
             y_indices, x_indices = np.indices(data_slice.shape)
             total = np.sum(data_slice)
             if total == 0:
@@ -97,17 +101,23 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
         return centroids
         
 
-    def chose_unique_coords(center_list):
+    def chose_unique_coords(center_list, threshold=3):
+        # numpy配列に変換
+        center_array = np.array(center_list)
+        unique_centers = []
 
-        unique_center_list = []
-        seen = set()
-        for y, x in center_list:
-            y_int, x_int = int(y), int(x)
-            if (y_int, x_int) not in seen:
-                unique_center_list.append((y, x))
-                seen.add((y_int, x_int))
-        
-        return unique_center_list
+        while len(center_array) > 0:
+            # 最初の座標を unique_centers に追加
+            ref_point = center_array[0]
+            unique_centers.append(ref_point)
+
+            # すべての点との距離を計算
+            distances = np.sqrt(np.sum((center_array - ref_point) ** 2, axis=1))
+
+            # 距離がしきい値(threshold)を超える点だけを残す
+            center_array = center_array[distances > threshold]
+
+        return unique_centers
     
     def write_to_txt(centers, filename):
         with open(filename, 'w') as f1:
@@ -162,7 +172,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
                 #print(f'{filename}, {searchrange0}')
 
                 if roopnum[0] > 0 and roopnum[1] > 0:
-                    if searchrange0[0] > minthreshold:
+                    if searchrange0[0] < minthreshold:
                         searchrange0[0] -= 0.5
                         searchrange0[1] -= 0.5
                     break
@@ -218,9 +228,9 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05, shift_thre
             #sides = sides / sides[-1]  # 最大の辺の長さで割る
             a, b, c = sides
             angles = [
-                np.arccos((b**2 + c**2 - a**2) / (2 * b * c)),
-                np.arccos((a**2 + c**2 - b**2) / (2 * a * c)),
-                np.arccos((a**2 + b**2 - c**2) / (2 * a * b))
+            np.arccos(np.clip((b**2 + c**2 - a**2) / (2 * b * c), -1, 1)),
+            np.arccos(np.clip((a**2 + c**2 - b**2) / (2 * a * c), -1, 1)),
+            np.arccos(np.clip((a**2 + b**2 - c**2) / (2 * a * b), -1, 1))
             ]
             #print(3)
             angles = np.sort(angles)
@@ -285,6 +295,7 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05, shift_thre
         matched_triangles_ref = np.array([descriptors_ref[indices[i][0]][1] for i in range(len(descriptors_input)) if good_matches[i]])
 
         if len(matched_triangles_input) == 0:
+            print(inputf)
             return None
 
         #print(f'len inp {len(matched_triangles_input)} ref {len(matched_triangles_ref)}')
@@ -353,6 +364,7 @@ def triangle_match(inputf, referencef, outputf, match_threshold=0.05, shift_thre
     # write .match
 
     if matched_coo is None:
+        #print(inputf)
         return None
 
     if matched_coo.size == 0:
@@ -495,7 +507,7 @@ def do_starfind(fitslist, param, optkey, infrakey):
         'g':param.g_minstarnum, 'i':param.i_minstarnum,
         'j':param.j_minstarnum, 'h':param.h_minstarnum, 'k':param.k_minstarnum
         }
-        minstarnum = 20
+        minstarnum = minstar[fitslist0[0][0]]
         maxstarnum = maxstar[fitslist0[0][0]]
         threshold_range = [l_threshold, h_threshold, interval]
         starnumlist, coordsfilelist, l_threshold1 = starfind_center3(fitslist0, pixscale[band], satcount[band], threshold_range, minstarnum, maxstarnum)
@@ -611,6 +623,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                     continue
                 opt_matchedf[varr].append(outfvarr)
         else:
+            print(f'not execute {varr} trimatch')
             opt_matchbase[varr] = optbase
             opt_match[varr] = 0
 
@@ -645,6 +658,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                     continue
                 inf_matchedf[varr].append(outfvarr)
         else:
+            print(f'not execute {varr} trimatch')
             inf_matchbase[varr] = infbase
             inf_match[varr] = 0
 
