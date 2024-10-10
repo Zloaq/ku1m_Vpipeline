@@ -15,6 +15,7 @@ from pyraf import iraf
 import bottom
 import flat_sky
 import starmatch # type: ignore
+import starmatch_ql
 import comb_phot as com_p
 
 
@@ -176,7 +177,7 @@ class readlog():
 	def __init__(self, filename):
 		
 		if not os.access(filename, os.R_OK):
-			print(filename,' is not found')
+			#print(filename,' is not found')
 			self.log = 'nothing'
 		
 		else:
@@ -373,7 +374,14 @@ def execute_code(param, objparam, log, bands='gijhk'):
 	fitspro = []
 	fitslist = {}
 	obnamelist = {}
+
+	if param.quicklook == 1:
+		print('quicklook mode')
+
+
 	subprocess.run(f'rm {param.work_dir}/*.fits', shell=True, stderr=subprocess.DEVNULL)
+
+
 	if any(varr in bands for varr in ['j', 'h', 'k']):
 		try:
 			iraf.chdir(param.rawdata_infra)
@@ -421,11 +429,10 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		print(f'row data is not exists.')
 		sys.exit()
 
+	param.bands = bands
+
 	iraf.chdir(param.work_dir)
 
-	if param.quicklook == 1:
-		print('yet yet yet')
-		sys.exit()
 
 	if param.flatdiv == 1:
 	
@@ -436,7 +443,6 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		else:
 			print(f'do not execute flat_division')
 		
-	
 	if param.cut == 1:
 		fitslist = glob_latestproc(bands, fitspro)
 		bottom.cut(fitslist, param)
@@ -447,23 +453,36 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		if 'g' in fitslist:
 			bottom.xflip(fitslist['g'])
 
+
 	if param.sub_skylev == 1:
-		fitslist = glob_latestproc(bands, fitspro)
-		flat_sky.method2_1(fitslist)
+		if param.quicklook == 1:
+			fitslist = glob_latestproc2(bands, fitspro)
+			flat_sky.method2_0(fitslist)
+		else:
+			fitslist = glob_latestproc(bands, fitspro)
+			flat_sky.method2_1(fitslist)
 		fitspro.append('lev')
+
 	elif param.div_skylev == 1:
 		fitslist = glob_latestproc(bands, fitspro)
 		flat_sky.method2_2(fitslist)
 		fitspro.append('ylev')
+
 	elif param.sub_skylev == 1 and param.div_skylev == 1:
-		fitslist = glob_latestproc(bands, fitspro)
-		flat_sky.method2_1(fitslist)
+		if param.quicklook == 1:
+			fitslist = glob_latestproc2(bands, fitspro)
+			flat_sky.method2_0(fitslist)
+		else:
+			fitslist = glob_latestproc(bands, fitspro)
+			flat_sky.method2_1(fitslist)
 		fitspro.append('lev')
+
 	elif param.custom_skylev == 1:
 		fitslist = glob_latestproc(bands, fitspro)
 		print('custom_skylev yetyetyet')
 		sys.exit()
 		
+
 	if param.skysub == 1:
 		fitslist = glob_latestproc(bands, fitspro)
 		header = readheader(fitslist)
@@ -473,9 +492,14 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		fitspro.append('sky')
 		
 	if param.starmatch == 1:
-		fitslist = glob_latestproc2(bands, fitspro)
-		starmatch.main(fitslist, param)
-		fitspro.append('geo*')
+		if param.quicklook == 1:
+			fitslist = glob_latestproc2(bands, fitspro)
+			starmatch_ql.main(fitslist, param)
+			fitspro.append('geo*')
+		else:
+			fitslist = glob_latestproc2(bands, fitspro)
+			starmatch.main(fitslist, param)
+			fitspro.append('geo*')
 
 	if param.comb_per_set == 1:
 		fitslist = glob_latestproc2(bands, fitspro)

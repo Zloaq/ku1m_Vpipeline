@@ -226,6 +226,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
                 else:
                     break
             
+
             file = f'{filename[:-5]}.coo'
             write_to_txt(unique_center_list, file)
             coordsfilelist.append(file)
@@ -311,12 +312,17 @@ def triangle_match(inputf, referencef, outputf, match_threshold=1, shift_thresho
         coords_input = read_coofile(inputf)
         coords_ref = read_coofile(referencef)
 
+        if len(coords_input) == 0 or len(coords_ref) == 0:
+            return None
+
         descriptors_input = compute_triangle_descriptors(coords_input)
         descriptors_ref = compute_triangle_descriptors(coords_ref)
 
         descs_input = np.array([desc[0] for desc in descriptors_input])
         descs_ref = np.array([desc[0] for desc in descriptors_ref])
 
+        if len(descs_input) == 0 or len(descs_ref) == 0:
+            return None
 
         nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(descs_ref)
         distances, indices = nbrs.kneighbors(descs_input)
@@ -454,6 +460,11 @@ def geotparam(param, file_list, base_rotate):
     param_list = []
 
     for filename in file_list:
+
+        if filename is None:
+            param_list.append(None)
+            continue
+
         geotp = {}
         geotp['fitsid']=filename[1:-4]
         tempfits = f'{filename[0:-4]}.fits'
@@ -618,22 +629,40 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
         'j':param.j_threshold, 'h':param.h_threshold, 'k':param.k_threshold
         }
 
-    if optcoolist:
-        optcommon = {s[1:-4] for s in optcoolist[next(iter(optcoolist))]}
-        for key in optcoolist:
-            optcommon &= {s[1:-4] for s in optcoolist[key]}
-        optbase = sorted(optcommon)[0]
+    if 'g' in optcoolist and 'i' in optcoolist:
+        # 共通部分の名前を抽出
+        optcommon = list(set(s[1:-4] for s in optcoolist['g']) & set(s[1:-4] for s in optcoolist['i']))
+        common_indices = [
+            (optcoolist['g'].index(f'g{element}.coo'), optcoolist['i'].index(f'i{element}.coo'), element)
+            for element in optcommon
+        ]
+        # starnumlist の数を比較して optbase を決定
+        # これで base が死に画像だったらマジで無理
+        max_starnum = -1
+        optbase = None
+        for varr in common_indices:
+            starnum_varr = optstarlist['g'][varr[0]] * optstarlist['i'][varr[1]]
+            if starnum_varr > max_starnum:
+                max_starnum = starnum_varr
+                optbase = varr[2]
+                #print(f'optbaseoptbase{optbase}')
     else:
-        optcommon = set()
+        optcommon = set(optcoolist.values())
+        optbase = optcommon[list.index(max(optstarlist))]
 
     for varr in optcoolist:
-        if optcoolist[varr] and min(optstarlist[varr]) > 3:
+        print(f'{varr} base is {varr}{optbase}.fits')
+
+
+    for varr in optcoolist:
+        if optcoolist[varr] and max(optstarlist[varr]) > 3:
             opt_match[varr] = 1
             opt_matchedf[varr] = []
             tempfits = f"{varr}{optbase}.fits"
             hdu = fits.open(tempfits)
             base_rotate = float(hdu[0].header['OFFSETRO']) or 0
             opt_matchbase[varr] = optbase
+            notmatch = []
             for filename in tqdm(optcoolist[varr], desc='{:<}'.format(f'{varr} trimatch')):
                 if filename[1:-4] == optbase:
                     continue
@@ -646,15 +675,21 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                 #print(f'filename {filename}')
                 outfvarr = triangle_match(filename, referencef, outf, match_threshold[varr])
                 if outfvarr is None:
+                    notmatch.append(tempfits)
+                    opt_matchedf[varr].append(None)
                     continue
                 opt_matchedf[varr].append(outfvarr)
         else:
             print(f'not execute {varr} trimatch')
-            print(f'{varr} minimum star num <= 3')
+            #print(f'{varr} minimum star num <= 3')
             opt_matchbase[varr] = optbase
             opt_match[varr] = 0
+        
+        for varr2 in notmatch:
+            print(f'{varr2} was not matched')
 
 
+    #ここはめんどくさいから放置
     if infcoolist:
         infcommon = {s[1:-4] for s in infcoolist[next(iter(infcoolist))]}
         for key in infcoolist:
@@ -662,15 +697,18 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
         infbase = sorted(infcommon)[0]
     else:
         infcommon = set()
+    #ここまで
 
     for varr in infcoolist:
-        if infcoolist[varr] and min(infstarlist[varr]) > 3:
+        if infcoolist[varr] and max(infstarlist[varr]) > 3:
             inf_match[varr] = 1
             inf_matchedf[varr] = []
             tempfits = f"{varr}{infbase}.fits"
             hdu = fits.open(tempfits)
             base_rotate = float(hdu[0].header['OFFSETRO']) or 0
             inf_matchbase[varr] = infbase
+            print(f'')
+            notmatch = []
             for filename in tqdm(infcoolist[varr], desc='{:<}'.format(f'{varr} trimatch')):
                 if filename[1:-4] == infbase:
                     continue
@@ -682,15 +720,20 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                 referencef = f"{varr}{infbase}.coo"
                 outfvarr = triangle_match(filename, referencef, outf, match_threshold[varr])
                 if outfvarr is None:
+                    notmatch.append(tempfits)
+                    inf_matchedf[varr].append(None)
                     continue
                 inf_matchedf[varr].append(outfvarr)
         else:
             print(f'not execute {varr} trimatch')
-            print(f'{varr} minimum star num <= 3')
+            #print(f'{varr} minimum star num <= 3')
             inf_matchbase[varr] = infbase
             inf_match[varr] = 0
 
-    
+        for varr2 in notmatch:
+            print(f'{varr2} was not matched')
+
+    """
     if opt_match:
         for varr in opt_matchedf:
             if opt_match[varr] == 1:
@@ -704,7 +747,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                 matched_num = match_checker(inf_matchedf[varr])
                 if matched_num < 3:
                     inf_match[varr] == 0
-
+    """
     
     return opt_match, opt_matchbase, opt_matchedf, inf_match, inf_matchbase, inf_matchedf
 
@@ -721,6 +764,9 @@ def do_geomap(fitslist, opt_match, opt_matchedf, inf_match, inf_matchedf):
             nyblock = len(data)
             opt_outlist[varr] = []
             for varrf in opt_matchedf[varr]:
+                if varrf is None:
+                    opt_outlist[varr].append(None)
+                    continue
                 outf = re.sub(r'.match', r'.geo', varrf)
                 bottom.geomap(varrf, nxblock, nyblock, outf, 'rotate')
                 opt_outlist[varr].append(outf)
@@ -730,6 +776,9 @@ def do_geomap(fitslist, opt_match, opt_matchedf, inf_match, inf_matchedf):
             nyblock = len(data)
             opt_outlist[varr] = []
             for varrf in opt_matchedf[varr]:
+                if varrf is None:
+                    opt_outlist[varr].append(None)
+                    continue
                 outf = re.sub(r'.match', r'.geo', varrf)
                 bottom.geomap(varrf, nxblock, nyblock, outf, 'shift')
                 opt_outlist[varr].append(outf)
@@ -741,6 +790,9 @@ def do_geomap(fitslist, opt_match, opt_matchedf, inf_match, inf_matchedf):
             nyblock = len(data)
             inf_outlist[varr] = []
             for varrf in inf_matchedf[varr]:
+                if varrf is None:
+                    inf_outlist[varr].append(None)
+                    continue
                 outf = re.sub(r'.match', r'.geo', varrf)
                 bottom.geomap(varrf, nxblock, nyblock, outf, 'rotate')
                 inf_outlist[varr].append(outf)
@@ -750,6 +802,9 @@ def do_geomap(fitslist, opt_match, opt_matchedf, inf_match, inf_matchedf):
             nyblock = len(data)
             inf_outlist[varr] = []
             for varrf in inf_matchedf[varr]:
+                if varrf is None:
+                    inf_outlist[varr].append(None)
+                    continue
                 outf = re.sub(r'.match', r'.geo', varrf)
                 bottom.geomap(varrf, nxblock, nyblock, outf, 'shift')
                 inf_outlist[varr].append(outf)
@@ -806,6 +861,8 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
     opt_iddict = {}
     for varr in opt_geomdict:
         for index, varr2 in enumerate(opt_geomdict[varr]):
+            if varr2 is None:
+                continue
             if varr2['fitsid'] not in opt_iddict:
                 opt_iddict[varr2['fitsid']] = {}
             opt_iddict[varr2['fitsid']][varr] = index
@@ -814,6 +871,8 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
     for varr in inf_geomdict:
         #print(f'え？{inf_geomdict}')
         for index, varr2 in enumerate(inf_geomdict[varr]):
+            if varr2 is None:
+                continue
             #print(f'まじ？{varr2}')
             if varr2['fitsid'] not in inf_iddict:
                 inf_iddict[varr2['fitsid']] = {}
@@ -832,6 +891,10 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
     for varr in optkey:
         
         for fitsname in tqdm(fitslist[varr], desc=f'try {varr} band geotran '):
+
+            if fitsname is None:
+                continue
+
             fitsid = fitsname[1:-5]
             
             if fitsid == opt_matchb[geotran_base[varr]]:
@@ -870,6 +933,10 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
     for varr in infrakey:
         
         for fitsname in tqdm(fitslist[varr], desc=f'try {varr} band geotran '):
+
+            if fitsname is None:
+                continue
+
             fitsid = fitsname[1:-5]
 
             if fitsid == inf_matchb[geotran_base[varr]]:
@@ -907,13 +974,14 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
                 
             bottom.geotran(fitsname, outfile, xmean, ymean, xrefmean, yrefmean, xrotation, yrotation)
 
-    
+    """
     for band in basefits:
         print(f'{band} base is {basefits[band]}')
     
     not_exec.sort()
     for varr in not_exec:
         print(f'{varr} was not moved.')
+    """
     
 
 

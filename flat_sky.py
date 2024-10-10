@@ -10,6 +10,7 @@ import statistics
 import numpy as np
 from tqdm import tqdm
 from astropy.io import fits
+import matplotlib.pyplot as plt
 from pyraf import iraf
 
 import bottom
@@ -30,6 +31,34 @@ def flat_division(bands, inlist):
         bottom.imarith(i2, '/', flats[i2[0]][0],  re.sub(r'.fits', r'_fl.fits', i2))
 
     return 0
+
+def method2_0(fitslist0):
+    # skylevel subtraction
+    for band, fitslist in fitslist0.items():
+        outliers_index = []
+        levlist = [bottom.skystat(fitsname, 'median') for fitsname in tqdm(fitslist, desc='{:<13}'.format(f'calc {band} skylev'))]
+        if band in ['g', 'i']:
+            # 標準偏差を計算
+            levlist_np = np.array(levlist)
+            median = np.median(levlist_np)
+            std_dev = np.sqrt(np.mean((levlist_np - median) ** 2))
+            lower_bound = median - 3 * std_dev
+            upper_bound = median + 3 * std_dev
+            # 外れ値のインデックスを取得
+            outliers_index = [index for index, value in enumerate(levlist) if value < lower_bound or value > upper_bound]
+        for index in outliers_index:
+            print(f'{fitslist[index]} was rejected as outside 3 sigma skylevel')
+        for index, f2 in enumerate(tqdm(fitslist, desc='{:<13}'.format(f'sub  {band} skylev'))):
+            if index in outliers_index:
+                continue  # 外れ値の場合はスキップ
+            data, hdr = fits.getdata(f2, header=True)
+            f3 = re.sub(r'.fits', r'_lev.fits', f2)
+            data = data.astype(float)
+            data -= levlist[index]
+            hdr['SKYCOUNT'] = levlist[index]
+            fits.writeto(f3, data, hdr, overwrite=True)
+
+
 
 def method2_1(fitslist):
     # skylevel subtraction
