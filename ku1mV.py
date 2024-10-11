@@ -495,7 +495,7 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		if param.quicklook == 1:
 			fitslist = glob_latestproc2(bands, fitspro)
 			starmatch_ql.main(fitslist, param)
-			fitspro.append('geo*')
+			fitspro.append('ql_geo*')
 		else:
 			fitslist = glob_latestproc2(bands, fitspro)
 			starmatch.main(fitslist, param)

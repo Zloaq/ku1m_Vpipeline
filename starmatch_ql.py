@@ -898,7 +898,7 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
             fitsid = fitsname[1:-5]
             
             if fitsid == opt_matchb[geotran_base[varr]]:
-                outfile = re.sub('.fits', f'_geo{varr}.fits', fitsname)
+                outfile = re.sub('.fits', f'_ql_geo{varr}.fits', fitsname)
                 bottom.geotran(fitsname, outfile, 1, 1, 1, 1, 0, 0)
                 basefits[varr] = outfile
                 continue
@@ -914,7 +914,7 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
                 not_exec.append(fitsname)
                 continue
 
-            outfile = re.sub('.fits', f'_geo{base_band}.fits', fitsname)
+            outfile = re.sub('.fits', f'_ql_geo{base_band}.fits', fitsname)
             xmean = opt_geomdict[base_band][index]['xmean']
             ymean = opt_geomdict[base_band][index]['ymean']
             xrefmean = opt_geomdict[base_band][index]['xrefmean']
@@ -940,7 +940,7 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
             fitsid = fitsname[1:-5]
 
             if fitsid == inf_matchb[geotran_base[varr]]:
-                outfile = re.sub('.fits', f'_geo{varr}.fits', fitsname)
+                outfile = re.sub('.fits', f'_ql_geo{varr}.fits', fitsname)
                 bottom.geotran(fitsname, outfile, 1, 1, 1, 1, 0, 0)
                 basefits[varr] = outfile
                 continue
@@ -960,7 +960,7 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
                 not_exec.append(fitsname)
                 continue
 
-            outfile = re.sub('.fits', f'_geo{base_band}.fits', fitsname)
+            outfile = re.sub('.fits', f'_ql_geo{base_band}.fits', fitsname)
             xmean = inf_geomdict[base_band][index]['xmean']
             ymean = inf_geomdict[base_band][index]['ymean']
             xrefmean = inf_geomdict[base_band][index]['xrefmean']
