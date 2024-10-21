@@ -634,7 +634,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
             hdu = fits.open(tempfits)
             base_rotate = float(hdu[0].header['OFFSETRO']) or 0
             opt_matchbase[varr] = optbase
-            for filename in tqdm(optcoolist[varr], desc='{:<}'.format(f'{varr} trimatch')):
+            for filename in tqdm(optcoolist[varr], desc='{:<}'.format(f'{varr} tr-match')):
                 if filename[1:-4] == optbase:
                     continue
                 tempfits = re.sub('.coo', '.fits', filename)
@@ -671,7 +671,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
             hdu = fits.open(tempfits)
             base_rotate = float(hdu[0].header['OFFSETRO']) or 0
             inf_matchbase[varr] = infbase
-            for filename in tqdm(infcoolist[varr], desc='{:<}'.format(f'{varr} trimatch')):
+            for filename in tqdm(infcoolist[varr], desc='{:<}'.format(f'{varr} tr-match')):
                 if filename[1:-4] == infbase:
                     continue
                 tempfits = re.sub('.coo', '.fits', filename)
