@@ -7,9 +7,10 @@ import glob
 import shutil
 import subprocess
 import signal
+from pyraf import iraf
 import numpy as np
 from astropy.io import fits
-from pyraf import iraf
+
 
 #import download
 import bottom
@@ -512,23 +513,24 @@ def execute_code(param, objparam, log, bands='gijhk'):
 	if param.aperture_phot == 1:
 		print('phot')
 
-	if param.row_fits == 1:
+	if param.rm_row_fits == 1:
 		subprocess.run(f'rm {param.work_dir}/???????-????.fits', shell=True, stderr=subprocess.DEVNULL)
-	if param.cut_fits == 1:
+	if param.rm_cut_fits == 1:
 		subprocess.run(f'rm {param.work_dir}/*_cut.fits', shell=True, stderr=subprocess.DEVNULL)
-	if param.lev_fits == 1:
+	if param.rm_lev_fits == 1:
 		subprocess.run(f'rm {param.work_dir}/*_lev.fits', shell=True, stderr=subprocess.DEVNULL)
-	if param.sky_fits == 1:
+	if param.rm_sky_fits == 1:
 		subprocess.run(f'rm {param.work_dir}/*_sky.fits', shell=True, stderr=subprocess.DEVNULL)
-	if param.geo_fits == 1:
+	if param.rm_geo_fits == 1:
 		subprocess.run(f'rm {param.work_dir}/*_geo?.fits', shell=True, stderr=subprocess.DEVNULL)
-	if param.coo_file == 1:
+	if param.rm_coo_file == 1:
 		subprocess.run(f'rm {param.work_dir}/*.coo', shell=True, stderr=subprocess.DEVNULL)
-	if param.match_file == 1:
+	if param.rm_match_file == 1:
 		subprocess.run(f'rm {param.work_dir}/*.match', shell=True, stderr=subprocess.DEVNULL)
-	if param.geo_file == 1:
+	if param.rm_geo_file == 1:
 		subprocess.run(f'rm {param.work_dir}/*.geo', shell=True, stderr=subprocess.DEVNULL)
 
+	print("end")
 
 if __name__ == '__main__':
 	

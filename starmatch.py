@@ -28,7 +28,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
         width = region_slice[1].stop - region_slice[1].start
         height = region_slice[0].stop - region_slice[0].start
         squareness = abs(width - height)
-        if width < 4 or height < 4:
+        if width < 5 or height < 5:
             squareness = 200
         return squareness
 
