@@ -202,13 +202,19 @@ class Queueue(ctk.CTkScrollableFrame):
         super().__init__(master, width=300, *args, **kwargs)
         self.label = ctk.CTkLabel(self, text="Queue waiting list")
         self.label.grid(row=0, column=0, sticky="nw")
+        self.task_copy = None
         self.update_interval = 1000
         self.get_ueuelist()
         self.schedule_update()
 
     def get_ueuelist(self):
         with lock:
-            self.task_copy = list(task_queue.queue)
+            self.temp_copy = list(task_queue.queue)
+
+        if self.task_copy == self.temp_copy:
+            return
+        
+        self.task_copy = self.temp_copy
 
         for label in getattr(self, "labels", []):
             label.destroy()
@@ -270,6 +276,38 @@ class OnOffButton(ctk.CTkScrollableFrame):
             )
             toggle_switch.grid(row=i, column=0, padx=10, pady=(10, 0), sticky="w")
             self.checkboxes.append(toggle_switch)
+
+    def checkbox_changed(self, key):
+        with lock:
+            self.parameter_dict[key] = self.toggle_vars[key].get()
+            path_program = os.path.abspath(__file__)
+            dir_of_program = os.path.dirname(path_program)
+            dir1 = os.path.join(dir_of_program, 'main.param')
+            with open(dir1) as f1:
+                lines = f1.readlines()
+            new_lines = []
+            for line in lines:
+                if line.startswith('#') or line.strip() == '':
+                    # コメント行や空行はそのままにする
+                    new_lines.append(line)
+                    continue
+                
+                varr = line.split('#')
+                varr1 = varr[0].split()
+                if varr1[0] == key:
+                    new_value = self.parameter_dict[key]
+                    new_line = f"{key:<15} {new_value}"
+                    if len(varr) > 1:
+                        new_line += f" #{varr[1]}"
+                    new_line += "\n"
+                    new_lines.append(new_line)
+                else:
+                    new_lines.append(line)
+            # 更新後の内容をファイルに書き込む
+            with open(dir1, 'w') as f:
+                f.writelines(new_lines)
+
+        
             
     def get(self):
         checked_checkboxes = []
@@ -277,6 +315,18 @@ class OnOffButton(ctk.CTkScrollableFrame):
             if checkbox.get() == 1:
                 checked_checkboxes.append(checkbox.cget("text"))
         return checked_checkboxes
+    
+    def save_paramfile(self):
+        # パラメータファイルを更新するメソッド
+        path_program = os.path.abspath(__file__)
+        dir_of_program = os.path.dirname(path_program)
+        dir1 = os.path.join(dir_of_program, 'main.param')
+
+        with open(dir1, 'w') as f:
+            for key, value in self.parameter_dict.items():
+                # 行のフォーマット: 変数名 + 値 + コメント（コメントがある場合）
+                line = f"{key} {value}\n"
+                f.write(line)
     
 
 class CheckProgress(ctk.CTkFrame):
