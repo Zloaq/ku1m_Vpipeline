@@ -38,24 +38,6 @@ class App(ctk.CTk):
         self.menu_frame =  MenuFrame(master=self, main_frame_dict=self.main_frame_dict)
         self.menu_frame.grid(row=0, column=0, sticky="nsew")
 
-    def setup_form_old(self):
-        ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("blue")
-
-        self.geometry("1000x300")
-        self.title("CSV plot viewer")
-
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_columnconfigure(0, weight=1)
-
-        self.execute_frame = ExecFrame(mastar=self)
-        self.execute_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
-
-        self.onoff_button = OnOffButton(master=self, parameter_dict=read_paramfile1(), header_name='なんだそれ')
-        self.onoff_button.grid(row=1, column=0, padx=10, pady=10, sticky="nsw")
-
-        self.button_paramedit = ctk.CTkButton(master=self, width=250, command=self.open_editparam, text="edit advanced.param", font=self.fonts)
-        self.button_paramedit.grid(row=2, column=0, padx=10, pady=(10,10), sticky="w")
 
     def read_param(self):
         current_dir = os.path.abspath(os.path.dirname(__file__))
@@ -117,7 +99,6 @@ class ExecuteFrame(ctk.CTkFrame):
         self.w_ueuelist = Queueue(master=self)
         self.w_ueuelist.grid(row=1, column=1, padx=(5, 10), pady=10, sticky="nsw")
         self.grid_columnconfigure(1, weight=1)
-
 
 
 class ExecForm(ctk.CTkFrame):

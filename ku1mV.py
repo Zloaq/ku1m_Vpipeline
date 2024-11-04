@@ -514,7 +514,7 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		print('phot')
 
 	if param.rm_row_fits == 1:
-		subprocess.run(f'rm {param.work_dir}/???????-????.fits', shell=True, stderr=subprocess.DEVNULL)
+		subprocess.run(f'rm {param.work_dir}/???????-[0-9][0-9][0-9][0-9].fits', shell=True, stderr=subprocess.DEVNULL)
 	if param.rm_cut_fits == 1:
 		subprocess.run(f'rm {param.work_dir}/*_cut.fits', shell=True, stderr=subprocess.DEVNULL)
 	if param.rm_lev_fits == 1:
