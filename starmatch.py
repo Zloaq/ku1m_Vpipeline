@@ -167,8 +167,8 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
             #print(f'filenamr {filename}')
             data = fits.getdata(filename)
             header = fits.getheader(filename)
-            offra_pix = int(float(header['OFFSETRA'])/pixscale)
-            offde_pix = int(float(header['OFFSETDE'])/pixscale)
+            offra_pix = int(float(header['OFFSETRA'] or 0)/pixscale)
+            offde_pix = int(float(header['OFFSETDE'] or 0)/pixscale)
             if offra_pix > 0:
                 data[:, :offra_pix] = 0
             elif offra_pix < 0:
@@ -458,7 +458,7 @@ def geotparam(param, file_list, base_rotate):
         geotp['fitsid']=filename[1:-4]
         tempfits = f'{filename[0:-4]}.fits'
         hdu = fits.open(tempfits)
-        move_rotate = float(hdu[0].header['OFFSETRO']) or 0
+        move_rotate = float(hdu[0].header['OFFSETRO'] or 0)
         rotate_diff = abs(base_rotate - move_rotate)
         rotate1 = 360 - rotate_diff
         rotate2 = rotate_diff
@@ -554,10 +554,7 @@ def do_starfind(fitslist, param, optkey, infrakey):
         for varr in fitslist0:
             stdlist0.append(bottom.skystat(varr, 'stddev'))
             hdu = fits.open(varr)
-            try:
-                skcount0.append(float(hdu[0].header['SKYCOUNT']))
-            except:
-                skcount0.append(0)
+            skcount0.append(float(hdu[0].header['SKYCOUNT'] or 0))
         np_stdlist0 = np.array(stdlist0)
         np_skcount0 = np.array(skcount0)
         medstd = np.median(np_stdlist0)
@@ -632,14 +629,14 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
             opt_matchedf[varr] = []
             tempfits = f"{varr}{optbase}.fits"
             hdu = fits.open(tempfits)
-            base_rotate = float(hdu[0].header['OFFSETRO']) or 0
+            base_rotate = float(hdu[0].header['OFFSETRO'] or 0)
             opt_matchbase[varr] = optbase
             for filename in tqdm(optcoolist[varr], desc='{:<}'.format(f'{varr} tr-match')):
                 if filename[1:-4] == optbase:
                     continue
                 tempfits = re.sub('.coo', '.fits', filename)
                 hdu = fits.open(tempfits)
-                move_rotate = float(hdu[0].header['OFFSETRO']) or 0
+                move_rotate = float(hdu[0].header['OFFSETRO'] or 0)
                 rotatediff = move_rotate - base_rotate
                 outf = re.sub(r'.coo', r'.match', filename)
                 referencef = f"{varr}{optbase}.coo"
@@ -669,14 +666,14 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
             inf_matchedf[varr] = []
             tempfits = f"{varr}{infbase}.fits"
             hdu = fits.open(tempfits)
-            base_rotate = float(hdu[0].header['OFFSETRO']) or 0
+            base_rotate = float(hdu[0].header['OFFSETRO'] or 0)
             inf_matchbase[varr] = infbase
             for filename in tqdm(infcoolist[varr], desc='{:<}'.format(f'{varr} tr-match')):
                 if filename[1:-4] == infbase:
                     continue
                 tempfits = re.sub('.coo', '.fits', filename)
                 hdu = fits.open(tempfits)
-                move_rotate = float(hdu[0].header['OFFSETRO']) or 0
+                move_rotate = float(hdu[0].header['OFFSETRO'] or 0)
                 rotatediff = move_rotate - base_rotate
                 outf = re.sub(r'.coo', r'.match', filename)
                 referencef = f"{varr}{infbase}.coo"
@@ -793,13 +790,13 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
     for varr in opt_geomfile:
         tempfits = f'{varr}{opt_matchb[varr]}.fits'
         hdu = fits.open(tempfits)
-        base_rotate = float(hdu[0].header['OFFSETRO']) or 0
+        base_rotate = float(hdu[0].header['OFFSETRO'] or 0)
         opt_geomdict[varr] = geotparam(param, opt_geomfile[varr], base_rotate)
     inf_geomdict = {}
     for varr in inf_geomfile:
         tempfits = f'{varr}{inf_matchb[varr]}.fits'
         hdu = fits.open(tempfits)
-        base_rotate = float(hdu[0].header['OFFSETRO']) or 0
+        base_rotate = float(hdu[0].header['OFFSETRO'] or 0)
         inf_geomdict[varr] = geotparam(param, inf_geomfile[varr], base_rotate)
     
 
@@ -859,9 +856,6 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
             xrotation = opt_geomdict[base_band][index]['xrotation']
             yrotation = opt_geomdict[base_band][index]['yrotation']
 
-            if varr != base_band:
-                xmean, ymean = calc_geot(base_band, varr, (xmean, ymean))
-                xrefmean, yrefmean = calc_geot(base_band, varr, (xrefmean, yrefmean))
 
             bottom.geotran(fitsname, outfile, xmean, ymean, xrefmean, yrefmean, xrotation, yrotation)
 
@@ -901,7 +895,7 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
             xrotation = inf_geomdict[base_band][index]['xrotation']
             yrotation = inf_geomdict[base_band][index]['yrotation']
 
-            if varr != base_band:
+            if varr != base_band and param.rel_match == 1:
                 xmean, ymean = calc_geot(base_band, varr, (xmean, ymean))
                 xrefmean, yrefmean = calc_geot(base_band, varr, (xrefmean, yrefmean))
                 

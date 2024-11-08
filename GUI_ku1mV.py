@@ -42,9 +42,7 @@ class App(ctk.CTk):
     def read_param(self):
         current_dir = os.path.abspath(os.path.dirname(__file__))
 
-    @staticmethod
-    def open_editparam():
-        new_window = paramedit()
+
 
 
 class MenuFrame(ctk.CTkFrame):
