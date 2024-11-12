@@ -103,8 +103,8 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
             y_indices, x_indices = np.indices(data_slice.shape)
             y_centroid_local = np.sum(y_indices * data_slice) / total
             x_centroid_local = np.sum(x_indices * data_slice) / total
-            y_centroid_global = y_centroid_local + y_start
-            x_centroid_global = x_centroid_local + x_start
+            y_centroid_global = y_centroid_local + y_start + 1
+            x_centroid_global = x_centroid_local + x_start + 1
             centroids.append((y_centroid_global, x_centroid_global))
 
         return centroids

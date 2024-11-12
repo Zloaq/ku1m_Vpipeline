@@ -24,7 +24,7 @@ def do_init():
 
 	home_dir = os.path.expanduser("~")
 		
-	new_dir1 = os.path.join(home_dir, 'ku1mV')
+	new_dir1 = os.path.join(home_dir, 'pipeline_datahub')
 	new_dir2 = os.path.join(new_dir1, 'optcam')
 	new_dir3 = os.path.join(new_dir1, 'kSIRIUS')
 	new_dir4 = os.path.join(new_dir1, 'object')
