@@ -650,7 +650,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
         
     else:
         optcommon = set(list(optcoolist.values())[0])
-        optstarlist_values = max(list(optstarlist.values())[0])
+        optstarlist_values = list(optstarlist.values())[0]
         max_value = max(optstarlist_values)
         max_index = optstarlist_values.index(max_value)
         optbase = list(optcommon)[max_index]
