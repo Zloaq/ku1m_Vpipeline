@@ -649,9 +649,10 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
         optbase = None
         
     else:
-        optcommon = set(frozenset(v) for v in optcoolist.values())
-        optstarlist_flat = [item for sublist in optstarlist.values() for item in sublist]
-        max_index = optstarlist_flat.index(max(optstarlist_flat))
+        optcommon = set(list[optcoolist.values()][0])
+        optstarlist_values = max(list(optstarlist.values())[0])
+        max_value = max(optstarlist_values)
+        max_index = optstarlist_values.index(max_value)
         optbase = list(optcommon)[max_index]
 
     for varr in optcoolist:
