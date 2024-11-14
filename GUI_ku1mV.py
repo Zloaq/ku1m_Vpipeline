@@ -130,8 +130,8 @@ class ExecForm(ctk.CTkFrame):
     def get_unique_date(self, param):
         optvarr0 = param.rawdata_opt.split('/{date}')[0]
         infvarr0 = param.rawdata_infra.split('/{date}')[0]
-        optvarr1 = re.sub(r"\{.*?\}", "*", optvarr0)
-        infvarr1 = re.sub(r"\{.*?\}", "*", infvarr0)
+        optvarr1 = re.sub(r"\{.*?\}", "\*", optvarr0)
+        infvarr1 = re.sub(r"\{.*?\}", "\*", infvarr0)
         optvarr2 = glob.glob(optvarr1)
         infvarr2 = glob.glob(infvarr1)
         optvarr3 = [
@@ -165,10 +165,12 @@ class ExecForm(ctk.CTkFrame):
         selected_object = self.combox_objects.get()
         selected_date   = self.combox_date.get()
         if selected_date == 'All':
-            for selected_date in self.dates:
-                task_queue.put(['./ku1mV.py', selected_object, selected_date,])
+            for selected_date0 in self.dates:
+                if selected_date0 == 'All':
+                    continue
+                task_queue.put(['./ku1mV.py', selected_object, selected_date0])
         else:
-                task_queue.put(['./ku1mV.py', selected_object, selected_date,])
+                task_queue.put(['./ku1mV.py', selected_object, selected_date])
 
     def ExecEvent(self):
         while self.executing:
