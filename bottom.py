@@ -96,16 +96,23 @@ def cut(inlist, param):
     }
     in_filenames = []
     out_filenames = []
+    crange_list = []
     
-    for f1 in inlist:
-        crange = cutrange[f1[0]]
-        f2 = re.sub(r'.fits', '_cut.fits', f1)
-        f3 = f1 + crange
-        in_filenames.append(f3)
-        out_filenames.append(f2)
+    for f0 in inlist:
+        for f1 in inlist[f0]:
+            crange_list.append(cutrange[f0])
+            f2 = re.sub('.fits', '_cut.fits', f1)
+            in_filenames.append(f1)
+            out_filenames.append(f2)
+            #slices = [slice(*map(int, item.split(':'))) for item in crange_list.strip('[]').split(', ')]
     
-    for f3, f2 in tqdm(zip(in_filenames, out_filenames), desc='{:<13}'.format("imcopy"), total=len(in_filenames)):
-        iraf.imcopy(input=f3, output=f2, Stdout=1)
+    for f1, f2, cr in tqdm(zip(in_filenames, out_filenames, crange_list), desc='{:<13}'.format("imcopy"), total=len(in_filenames)):
+        with fits.open(f1) as hdul:
+            data = hdul[0].data 
+            header = hdul[0].header 
+            exec(f'data = data{cr}') 
+            hdu = fits.PrimaryHDU(data, header) 
+            hdu.writeto(f2, overwrite=True) 
 
 
 def xflip(fitslist):

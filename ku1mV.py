@@ -444,7 +444,7 @@ def execute_code(param, objparam, log, bands='gijhk'):
 			print(f'do not execute flat_division')
 		
 	if param.cut == 1:
-		fitslist = glob_latestproc(bands, fitspro)
+		fitslist = glob_latestproc2(bands, fitspro)
 		bottom.cut(fitslist, param)
 		fitspro.append('cut')
 
