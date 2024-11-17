@@ -29,8 +29,9 @@ def do_init():
 	new_dir3 = os.path.join(new_dir1, 'kSIRIUS')
 	new_dir4 = os.path.join(new_dir1, 'object')
 	new_dir5 = os.path.join(new_dir1, 'workdir')
+	new_dir6 = os.path.join(new_dir1, 'matrix')
 
-	dirs_to_create = [new_dir1, new_dir2, new_dir3, new_dir4, new_dir5]
+	dirs_to_create = [new_dir1, new_dir2, new_dir3, new_dir4, new_dir5, new_dir6]
 	
 	for directory in dirs_to_create:
 		if not os.path.exists(directory):
@@ -45,6 +46,7 @@ def do_init():
 
 	paramlist = {
     'objfile_dir': f'{new_dir4}',
+	'matrix_dir': f'{new_dir6}',
     'rawdata_infra': f'{os.path.join(new_dir3, "{date}")}',
     'rawdata_opt': f'{os.path.join(new_dir2, "{date}")}',
     'work_dir': f'{os.path.join(new_dir5, "{objectname}", "{date}")}'
