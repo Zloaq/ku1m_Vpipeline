@@ -545,12 +545,7 @@ if __name__ == '__main__':
 	elif argc == 4:
 		param = readparam(argvs[2], argvs[1])
 		objparam = readobjfile(param, argvs[1])
-
-		path = os.path.join(param.work_dir)
-		os.makedirs(path, exist_ok=True)
-		iraf.chdir(path)
-		log = readlog('log.txt')
-		execute_code(param, objparam, log, argvs[3])
+		execute_code(param, objparam, None, argvs[3])
 	
 	else:
 		print('usage1 ./ku1mV.py [OBJECT file name] ')
