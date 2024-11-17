@@ -36,23 +36,6 @@ j_cutrange      '[9:-4,10:-4]'
 h_cutrange      '[9:-4,10:-4]'
 k_cutrange      '[9:-4,10:-4]'
 
-#--------skylevel-------------------
-
-# MEDIAN ==> 1, MODE ==> 2
-
-g_skylevel      1
-i_skylevel      1
-j_skylevel      1
-h_skylevel      1
-k_skylevel      1
-
-# SUBTRACTION ==> 1, DIVISION ==> 2
-
-g_skyfit        1
-i_skyfit        1
-j_skyfit        1
-h_skyfit        1
-k_skyfit        1
 
 #---------starfind-------------------
 
