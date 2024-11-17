@@ -381,57 +381,39 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		print('quicklook mode')
 
 
-	subprocess.run(f'rm {param.work_dir}/*.fits', shell=True, stderr=subprocess.DEVNULL)
-
-
 	if any(varr in bands for varr in ['j', 'h', 'k']):
-		try:
-			iraf.chdir(param.rawdata_infra)
-			globlist = glob.glob('*.fits')
-		except:
+		if os.path.exists(param.rawdata_infra):
+			pattern1 = os.path.join(param.rawdata_infra, '????????????.fits')
+			globlist1 = glob.glob(pattern1)
+		else:
 			print(f'{param.rawdata_infra} is not exists.')
-			globlist = []
+			globlist1 = []
 
-		for fitsname in globlist:
-			band = fitsname[0]
-			if band not in fitslist:
-				fitslist[band] = []
-			fitslist[band].append(fitsname)
-		for band1 in fitslist:
-			if band1 in ['j', 'h', 'k']:
-				fitslist[band1], obnamelist[band1] = match_object(fitslist[band1], objparam.SearchName)
-				for varr in fitslist[band1]:
-					shutil.copy(varr, param.work_dir)
 	
 	if any(varr in bands for varr in ['g', 'i']):
-		try:
-			iraf.chdir(param.rawdata_opt)
-			globlist = glob.glob('*.fits')
-		except:
+		if os.path.exists(param.rawdata_opt):
+			pattern2 = os.path.join(param.rawdata_opt, '????????????.fits')
+			globlist2 = glob.glob(pattern2)
+		else:
 			print(f'{param.rawdata_opt} is not exists.')
-			globlist = []
+			globlist2 = []
 		
-		for fitsname in globlist:
-			band = fitsname[0]
-			if band not in fitslist:
-				fitslist[band] = []
-			fitslist[band].append(fitsname)
-		for band1 in fitslist:
-			if band1 in ['g', 'i']:
-				fitslist[band1], obnamelist[band1] = match_object(fitslist[band1], objparam.SearchName)
-				for varr in fitslist[band1]:
-					shutil.copy(varr, param.work_dir)
 
-	keys_to_remove = [key for key in fitslist if not fitslist[key]]
-	for key in keys_to_remove:
-		del fitslist[key]
-	bands = list(fitslist.keys())
+	globlist = globlist1 + globlist2
 
-	if len(bands)==0:
-		print(f'row data is not exists.')
+	if globlist:
+		os.makedirs(param.work_dir, exist_ok=True)
+		subprocess.run(f'rm {param.work_dir}/*.fits', shell=True, stderr=subprocess.DEVNULL)
+	else:
+		print(f'rowdata not exists.')
+		print(f'end')
 		sys.exit()
 
-	param.bands = bands
+
+	fitslist, obnamelist = match_object(globlist, objparam.SearchName)
+	for varr in fitslist:
+		shutil.copy(varr, param.work_dir)
+
 
 	iraf.chdir(param.work_dir)
 
@@ -558,12 +540,7 @@ if __name__ == '__main__':
 	elif argc == 3:
 		param = readparam(argvs[2], argvs[1])
 		objparam = readobjfile(param, argvs[1])
-
-		path = os.path.join(param.work_dir)
-		os.makedirs(path, exist_ok=True)
-		iraf.chdir(path)
-		log = readlog('log.txt')
-		execute_code(param, objparam, log, 'gijhk')
+		execute_code(param, objparam, None, 'gijhk')
 
 	elif argc == 4:
 		param = readparam(argvs[2], argvs[1])
