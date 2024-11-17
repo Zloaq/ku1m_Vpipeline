@@ -37,7 +37,7 @@ class save_param():
                 items = f'{varr[1][0]}\\'
                 for index, item in enumerate(varr[1:]):
                     if item.endswith(('\'', '\"', ')')):
-                        items = items + item[:-1] + f'\\{item[:-1]}' + item[:-1]
+                        items = items + item[:-1] + f'\\{item[-1]}' + item[-1]
                         varr[1] = items
                         break
                     items = items + item + ' '
