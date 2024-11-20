@@ -217,18 +217,18 @@ class readheader():
         for f1 in fitslist:
             
             hdu = fits.open(f1)
-            self.object.append(hdu[0].header.get['OBJECT'])
+            self.object.append(hdu[0].header.get('OBJECT'))
             self.exptime.append(hdu[0].header.get('EXPTIME') or hdu[0].header.get('EXP_TIME'))
-            self.mjd.append(hdu[0].header.get['MJD'])
-            self.ra.append(hdu[0].header.get['RA'])
-            self.dec.append(hdu[0].header.get['DEC'])
-            self.airmass.append(hdu[0].header.get['AIRMASS'])
-            self.offsetra.append(hdu[0].header.get['OFFSETRA'] or 0)
-            self.offsetde.append(hdu[0].header.get['OFFSETDE'] or 0)
-            self.offsetro.append(hdu[0].header.get['OFFSETRO'] or 0)
-            self.azimuth.append(hdu[0].header.get['AZIMUTH'])
-            self.altitude.append(hdu[0].header.get['ALTITUDE'])
-            self.rotator.append(hdu[0].header.get['ROTATOR'] or hdu[0].header.get['ROTATER'])
+            self.mjd.append(hdu[0].header.get('MJD'))
+            self.ra.append(hdu[0].header.get('RA'))
+            self.dec.append(hdu[0].header.get('DEC'))
+            self.airmass.append(hdu[0].header.get('AIRMASS'))
+            self.offsetra.append(hdu[0].header.get('OFFSETRA', 0))
+            self.offsetde.append(hdu[0].header.get('OFFSETDE', 0))
+            self.offsetro.append(hdu[0].header.get('OFFSETRO', 0))
+            self.azimuth.append(hdu[0].header.get('AZIMUTH'))
+            self.altitude.append(hdu[0].header.get('ALTITUDE'))
+            self.rotator.append(hdu[0].header.get('ROTATOR') or hdu[0].header.get('ROTATER'))
             hdu.close()
 
 
@@ -239,7 +239,7 @@ def match_object(fitslist, search_name_list):
 	for index, fits_file in enumerate(fitslist):
 		try:
 			HDUlist = fits.open(fits_file)
-			obnamelist.append(HDUlist[0].header.get['OBJECT'])
+			obnamelist.append(HDUlist[0].header.get('OBJECT'))
 		except:
 			print('header is broken', fits_file)
 			wrong_index.append(index)

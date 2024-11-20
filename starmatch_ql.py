@@ -164,11 +164,12 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
     with tqdm(total=len(fitslist), desc=f'{fitslist[0][0]} band starfind') as pbar:
         while iterate <= len(fitslist) - 1:
             filename = fitslist[iterate]
-            #print(f'filenamr {filename}')
+            
             data = fits.getdata(filename)
             header = fits.getheader(filename)
-            offra_pix = int(float(header['OFFSETRA'])/pixscale)
-            offde_pix = int(float(header['OFFSETDE'])/pixscale)
+            
+            offra_pix = int(float(header.get('OFFSETRA', 0)) / pixscale)
+            offde_pix = int(float(header.get('OFFSETDE', 0)) / pixscale)
             if offra_pix > 0:
                 data[:, :offra_pix] = 0
             elif offra_pix < 0:
@@ -469,7 +470,7 @@ def geotparam(param, file_list, base_rotate):
         geotp['fitsid']=filename[1:-4]
         tempfits = f'{filename[0:-4]}.fits'
         hdu = fits.open(tempfits)
-        move_rotate = float(hdu[0].header['OFFSETRO'] or 0)
+        move_rotate = float(hdu[0].header.get('OFFSETRO', 0))
         rotate_diff = abs(base_rotate - move_rotate)
         rotate1 = 360 - rotate_diff
         rotate2 = rotate_diff
@@ -710,7 +711,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
             inf_matchedf[varr] = []
             tempfits = f"{varr}{infbase}.fits"
             hdu = fits.open(tempfits)
-            base_rotate = float(hdu[0].header['OFFSETRO'] or 0)
+            base_rotate = float(hdu[0].header.get('OFFSETRO', 0))
             inf_matchbase[varr] = infbase
             notmatch = []
             for filename in tqdm(infcoolist[varr], desc='{:<}'.format(f'{varr} tr-match')):
@@ -718,7 +719,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                     continue
                 tempfits = re.sub('.coo', '.fits', filename)
                 hdu = fits.open(tempfits)
-                move_rotate = float(hdu[0].header['OFFSETRO'] or 0)
+                move_rotate = float(hdu[0].header.get('OFFSETRO', 0))
                 rotatediff = move_rotate - base_rotate
                 outf = re.sub(r'.coo', r'.match', filename)
                 referencef = f"{varr}{infbase}.coo"
