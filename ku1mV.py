@@ -377,6 +377,9 @@ def execute_code(param, objparam, log, bands='gijhk'):
 	fitslist = {}
 	obnamelist = {}
 
+	print(f'start pipeline')
+	print(f'object {argvs[1]}')
+
 	if param.quicklook == 1:
 		print('quicklook mode')
 
@@ -400,8 +403,9 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		
 
 	globlist = globlist1 + globlist2
+	fitslist, obnamelist = match_object(globlist, objparam.SearchName)
 
-	if globlist:
+	if fitslist:
 		os.makedirs(param.work_dir, exist_ok=True)
 		subprocess.run(f'rm {param.work_dir}/*.fits', shell=True, stderr=subprocess.DEVNULL)
 	else:
@@ -410,7 +414,6 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		sys.exit()
 
 
-	fitslist, obnamelist = match_object(globlist, objparam.SearchName)
 	for varr in fitslist:
 		shutil.copy(varr, param.work_dir)
 
