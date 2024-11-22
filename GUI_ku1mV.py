@@ -155,12 +155,12 @@ class ExecForm(ctk.CTkFrame):
         if self.executing:
             self.executing = False
             self.exec_event_button.configure(text="▶︎ satrt queue", fg_color="green", hover_color="green")
-            task_queue.put([])
+            task_queue.put([':'])
 
         else:
             self.executing = True
             self.exec_event_button.configure(text="⏹ stop queue", fg_color="#8B0000", hover_color="#8B0000")
-            self.start_thread([':'])
+            self.start_thread()
     
     def AddEvent(self):
         selected_object = self.combox_objects.get()
