@@ -148,14 +148,15 @@ class ExecForm(ctk.CTkFrame):
         return unique_date
     
     def start_thread(self):
-        self.Qthread = threading.Thread(target=self.ExecEvent)
-        self.Qthread.start()
+        if not hasattr(self, 'Qthread'):
+            self.Qthread = threading.Thread(target=self.ExecEvent)
+            self.Qthread.start()
         
     def toggle(self):
         if self.executing:
             self.exec_event_button.configure(text="▶︎ satrt queue", fg_color="green", hover_color="green")
             self.executing = False
-            
+
         else:
             self.exec_event_button.configure(text="⏹ stop queue", fg_color="#8B0000", hover_color="#8B0000")
             self.executing = True
