@@ -155,7 +155,7 @@ class ExecForm(ctk.CTkFrame):
         if self.executing:
             self.executing = False
             self.exec_event_button.configure(text="▶︎ satrt queue", fg_color="green", hover_color="green")
-            task_queue.put([':'])
+            task_queue.put(':')
 
         else:
             self.executing = True
@@ -176,7 +176,10 @@ class ExecForm(ctk.CTkFrame):
     def ExecEvent(self):
         while self.executing:
             task = task_queue.get()
-            subprocess.run(task)
+            if type(task) == list:
+                subprocess.run(task)
+            elif type(task) == str:
+                subprocess.run(task, shell=True)
 
 
 class Queueue(ctk.CTkScrollableFrame):
