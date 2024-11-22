@@ -689,6 +689,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                 opt_matchedf[varr].append(outfvarr)
         else:
             print(f'not execute {varr} trimatch')
+            notmatch = []
             #print(f'{varr} minimum star num <= 3')
             opt_matchbase[varr] = optbase
             opt_match[varr] = 0
@@ -733,6 +734,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                 inf_matchedf[varr].append(outfvarr)
         else:
             print(f'not execute {varr} trimatch')
+            notmatch = []
             #print(f'{varr} minimum star num <= 3')
             inf_matchbase[varr] = infbase
             inf_match[varr] = 0
