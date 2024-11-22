@@ -173,9 +173,10 @@ class ExecForm(ctk.CTkFrame):
                 task_queue.put(['./ku1mV.py', selected_object, selected_date])
 
     def ExecEvent(self):
+        task = task_queue.get()
         while self.executing:
-            task = task_queue.get()
             subprocess.run(task)
+            task = task_queue.get()
 
 
 class Queueue(ctk.CTkScrollableFrame):
