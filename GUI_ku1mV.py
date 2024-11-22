@@ -153,12 +153,13 @@ class ExecForm(ctk.CTkFrame):
         
     def toggle(self):
         if self.executing:
-            self.exec_event_button.configure(text="▶︎ satrt queue", fg_color="green", hover_color="green")
             self.executing = False
+            self.exec_event_button.configure(text="▶︎ satrt queue", fg_color="green", hover_color="green")
+            
 
         else:
-            self.exec_event_button.configure(text="⏹ stop queue", fg_color="#8B0000", hover_color="#8B0000")
             self.executing = True
+            self.exec_event_button.configure(text="⏹ stop queue", fg_color="#8B0000", hover_color="#8B0000")
             self.start_thread()
     
     def AddEvent(self):
