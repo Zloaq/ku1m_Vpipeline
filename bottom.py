@@ -204,7 +204,8 @@ def imarith(infile1, op, infile2,  outfile):
     elif op == '-':
             data3 = data1 - data2
     elif op == '/':
-            data3 = np.where(data2 == 0, data1, data1 / data2)
+            data2_clean = np.nan_to_num(data2, nan=0)
+            data3 = np.where(data2_clean == 0, data1, data1 / data2)
 
     fits.writeto(outfile, data3, hdr, overwrite=True)
 
