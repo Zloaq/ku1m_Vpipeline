@@ -209,7 +209,8 @@ class Queueue(ctk.CTkScrollableFrame):
         self.labels = []
         self.buttons = []
         for i, varr in enumerate(self.task_copy):
-
+            if varr == ':':
+                continue
             label = ctk.CTkLabel(self, corner_radius=0, height=38,
                                  text=f"{varr[0]} {varr[1]} {varr[2]}",
                                  fg_color="transparent", font=("Helvetica", 14))
