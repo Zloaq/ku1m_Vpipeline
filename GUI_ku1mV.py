@@ -148,9 +148,8 @@ class ExecForm(ctk.CTkFrame):
         return unique_date
     
     def start_thread(self):
-        if not hasattr(self, 'Qthread'):
-            self.Qthread = threading.Thread(target=self.ExecEvent)
-            self.Qthread.start()
+        self.Qthread = threading.Thread(target=self.ExecEvent)
+        self.Qthread.start()
         
     def toggle(self):
         if self.executing:
