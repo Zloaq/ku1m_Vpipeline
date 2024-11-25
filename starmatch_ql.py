@@ -852,8 +852,8 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
 
         return moved_coox, moved_cooy
 
+
     opt_geomdict = {}
-    
     for varr in opt_geomfile:
         tempfits = f'{varr}{opt_matchb[varr]}.fits'
         hdu = fits.open(tempfits)
