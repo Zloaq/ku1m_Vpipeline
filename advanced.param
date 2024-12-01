@@ -30,11 +30,11 @@ k_satcount      9000
 
 #--------cut_param------------------
 
-g_cutrange      '[15:-4,15:-4]'
-i_cutrange      '[15:-4,15:-4]'
-j_cutrange      '[9:-4,10:-4]'
-h_cutrange      '[9:-4,10:-4]'
-k_cutrange      '[9:-4,10:-4]'
+g_cutrange      '[15:-4, 15:-4]'
+i_cutrange      '[15:-4, 15:-4]'
+j_cutrange      '[9:-8, 10:-7]'
+h_cutrange      '[9:-8, 10:-7]'
+k_cutrange      '[9:-8, 10:-7]'
 
 
 #---------starfind-------------------

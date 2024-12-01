@@ -11,6 +11,7 @@ import pandas as pd
 from scipy import ndimage
 from tqdm import tqdm
 from astropy.io import fits
+from scipy.optimize import curve_fit
 from pyraf import iraf
 
 from itertools import combinations
@@ -22,13 +23,13 @@ import bottom
 
 import matplotlib.pyplot as plt
 
-def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], minstarnum=4, maxstarnum=100, minthreshold=2.0):
+def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], minstarnum=4, maxstarnum=100, minthreshold=1.1, enable_progress_bar=True):
     
     def squareness(region_slice):
         width = region_slice[1].stop - region_slice[1].start
         height = region_slice[0].stop - region_slice[0].start
         squareness = abs(width - height)
-        if width < 4 or height < 4:
+        if width < 5 or height < 5:
             squareness = 200
         return squareness
 
@@ -67,7 +68,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
         
         return filtered_labels.tolist(), filtered_objects
 
-    def detect_round_clusters(filtered_labels, filtered_objects, labeled_image, square=5, fillrate=0.33):
+    def detect_round_clusters(filtered_labels, filtered_objects, labeled_image, square=4, fillrate=0.45):
         squareness_values = np.array([squareness(region_slice) for region_slice in filtered_objects])
         filling_rates = np.array([filling_rate(filtered_labels[i], region_slice, labeled_image) 
                                 for i, region_slice in enumerate(filtered_objects)])
@@ -78,7 +79,63 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
         slice_list = np.array([[region_slice[0], region_slice[1]] for region_slice in filtered_objects])[mask]
 
         return round_clusters, slice_list
+
+
+    def moffat_2d(coords, A, alpha, beta, x_c, y_c, offset):
+        x, y = coords
+        return A * (1 + ((x - x_c)**2 + (y - y_c)**2) / alpha**2) ** (-beta) + offset
     
+    # フィット関数（重心位置を更新）
+    def refine_center_2d(image, sigma, offset_fixed, tol=1e-5, max_iter=10):
+        """
+        image: 2次元画像データ（強度値）
+        sigma: ピクセルごとの誤差（2次元配列）
+        offset_fixed: 背景オフセット（固定値）
+        initial_center: 初期重心位置 (x_c, y_c)
+        tol: 重心位置の収束条件
+        max_iter: 最大反復回数
+        """
+        y_indices, x_indices = np.indices(image.shape)
+        coords = np.vstack((x_indices.ravel(), y_indices.ravel()))
+
+        # 初期値の設定
+        x_c, y_c = (image.shape[1] // 2, image.shape[0] // 2)
+        A_init = np.max(image)
+        alpha_init = 2.8
+        beta_init = 2  # 一般的な初期値
+
+        for iteration in range(max_iter):
+            # フィッティング対象のMoffat関数（中心を可変）
+            def moffat_2d_fixed_offset(coords, A, alpha, beta, x_c, y_c):
+                return moffat_2d(coords, A, alpha, beta, x_c, y_c, offset_fixed)
+
+            # フィット実行
+            initial_guess = [A_init, alpha_init, beta_init, x_c, y_c]
+            try:
+                popt, _ = curve_fit(
+                    moffat_2d_fixed_offset,
+                    coords,
+                    image.ravel(),
+                    p0=initial_guess,
+                    sigma=sigma.ravel(),
+                    absolute_sigma=True,
+                    bounds=(
+                        [0, 0.1, 0.1, 0, 0],  # パラメータの下限
+                        [np.inf, 10, 10, image.shape[1], image.shape[0]]  # パラメータの上限
+                    )
+                )
+            except:
+                popt = None
+                break
+
+            A, alpha, beta, x_c_new, y_c_new = popt
+            if np.sqrt((x_c_new - x_c)**2 + (y_c_new - y_c)**2) < tol:
+                #print("Converged!")
+                break
+            x_c, y_c = x_c_new, y_c_new
+
+        return popt
+
     def clustar_centroid(data, slices, padding=2):
         max_y, max_x = data.shape
 
@@ -103,11 +160,29 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
             y_indices, x_indices = np.indices(data_slice.shape)
             y_centroid_local = np.sum(y_indices * data_slice) / total
             x_centroid_local = np.sum(x_indices * data_slice) / total
-            y_centroid_global = y_centroid_local + y_start + 1
-            x_centroid_global = x_centroid_local + x_start + 1
+            y_centroid_global = y_centroid_local + y_start
+            x_centroid_global = x_centroid_local + x_start
             centroids.append((y_centroid_global, x_centroid_global))
 
-        return centroids
+        centroids2 = []
+        for index, coo in enumerate(centroids):
+            y, x = int(coo[0]), int(coo[1])
+            x_start, x_end = x - 8, x + 9
+            y_start, y_end = y - 8, y + 9
+            if x_start < 0 or y_start < 0 or x_end > data.shape[1] or y_end > data.shape[0]:
+                #print(f"Skipping coordinates ({x}, {y}) - slice out of bounds.")
+                continue
+            slice_image = data[y_start:y_end, x_start:x_end]
+            sigma = np.ones_like(slice_image)
+            index0 = int(len(data)/4)
+            offset_fixed = np.median(data[-index0:])
+            fitresult = refine_center_2d(slice_image, sigma, offset_fixed)
+            if fitresult is None:
+                continue
+            #print(f"Refined center: {(refined_center[1]+1, refined_center[0]+1)}")
+            centroids2.append((fitresult[4] + y_start + 1, fitresult[3] + x_start + 1))
+
+        return centroids2
 
     """
     def clustar_centroid(data, slices, padding=2):
@@ -161,7 +236,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
     #for index, filename in enumerate(tqdm(fitslist, desc=f'{fitslist[0][0]} band starfind')):
     iterate = 0
     searchrange0 = searchrange
-    with tqdm(total=len(fitslist), desc=f'{fitslist[0][0]} band starfind') as pbar:
+    with tqdm(total=len(fitslist), desc=f'{fitslist[0][0]} band starfind', disable=not enable_progress_bar) as pbar:
         while iterate <= len(fitslist) - 1:
             filename = fitslist[iterate]
             
@@ -183,6 +258,10 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
             med = bottom.skystat(filename, 'median')
 
             loopnum = [0, 0]
+            if searchrange0[0] < minthreshold:
+                searchrange0[0] += 1
+                searchrange0[1] += 1
+
             while searchrange0[0] >= minthreshold:
                 center_list = []
                 #print()
@@ -557,27 +636,7 @@ def do_starfind(fitslist, param, optkey, infrakey):
 
         return starnumlist, coordsfilelist, l_threshold1
 
-    def calc_threshold(fitslist0):
-        satcount = {
-        'g':param.g_satcount, 'i':param.i_satcount,
-        'j':param.j_satcount, 'h':param.h_satcount, 'k':param.k_satcount
-        }
-        band = fitslist0[0][0]
-        stdlist0 = []
-        skcount0 = []
-        for varr in fitslist0:
-            stdlist0.append(bottom.skystat(varr, 'stddev'))
-            hdu = fits.open(varr)
-            skcount0.append(float(hdu[0].header.get('SKYCOUNT', 0)))
-        np_stdlist0 = np.array(stdlist0)
-        np_skcount0 = np.array(skcount0)
-        medstd = np.median(np_stdlist0)
-        medskc = np.median(np_skcount0)
-        threshold0 = (satcount[band] - medskc)/medstd
-        #print(f'{threshold0} = ({satcount[band]} - {medskc})/{medstd}')
-        recom_threshold = int(threshold0)
 
-        return recom_threshold
 
     if optkey:
         for varr in optkey:
@@ -688,7 +747,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                     continue
                 opt_matchedf[varr].append(outfvarr)
         else:
-            print(f'not execute {varr} trimatch')
+            print(f'not execute {varr} tr-match')
             notmatch = []
             #print(f'{varr} minimum star num <= 3')
             opt_matchbase[varr] = optbase
@@ -733,7 +792,7 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
                     continue
                 inf_matchedf[varr].append(outfvarr)
         else:
-            print(f'not execute {varr} trimatch')
+            print(f'not execute {varr} tr-match')
             notmatch = []
             #print(f'{varr} minimum star num <= 3')
             inf_matchbase[varr] = infbase
