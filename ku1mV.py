@@ -394,6 +394,7 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		if os.path.exists(param.rawdata_infra):
 			pattern1 = os.path.join(param.rawdata_infra, '????????????.fits')
 			globlist1 = glob.glob(pattern1)
+			globlist1.sort()
 		else:
 			print(f'{param.rawdata_infra} is not exists.')
 			globlist1 = []
@@ -403,6 +404,7 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		if os.path.exists(param.rawdata_opt):
 			pattern2 = os.path.join(param.rawdata_opt, '????????????.fits')
 			globlist2 = glob.glob(pattern2)
+			globlist2.sort()
 		else:
 			print(f'{param.rawdata_opt} is not exists.')
 			globlist2 = []
