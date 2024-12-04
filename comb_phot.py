@@ -31,9 +31,7 @@ def comb_pset(fitslist):
 def comb_all(fitslist, day, obname):
 
     for band, varrlist in tqdm(fitslist.items(), desc='{:<13}'.format("comb all")):
-        outname = f'{band}{day}_{obname}.fits'
-        if os.path.exists(outname):
-            outname = f'{band}{day}_{obname}_all.fits'
+        outname = f'{band}{day}_{obname}_all.fits'
         bottom.combine(varrlist, outname, 'average')
 
 
