@@ -23,7 +23,7 @@ import bottom
 
 import matplotlib.pyplot as plt
 
-def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], minstarnum=4, maxstarnum=100, minthreshold=1.1, enable_progress_bar=True):
+def starfind_center3(fitslist, pixscale, satcount, searchrange=(3.0, 5.0, 0.2), minstarnum=4, maxstarnum=100, minthreshold=1.1, enable_progress_bar=True):
     
     def squareness(region_slice):
         width = region_slice[1].stop - region_slice[1].start
@@ -52,7 +52,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
     
     def filter_saturate(labeled_image, filtered_data, object_slices, header):
         #div には対応してない
-        skycount = float(header['SKYCOUNT'] or 0)
+        skycount = float(header.get('SKYCOUNT', 0))
         saturation_value = float(satcount) - skycount
         saturated_mask = filtered_data >= saturation_value
         saturated_labels = np.unique(labeled_image[saturated_mask])
@@ -210,7 +210,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
         return centroids
     """
 
-    def chose_unique_coords(center_list, threshold=3):
+    def chose_unique_coords(center_list, threshold=4):
         # numpy配列に変換
         center_array = np.array(center_list)
         unique_centers = []
@@ -238,7 +238,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
 
     #for index, filename in enumerate(tqdm(fitslist, desc=f'{fitslist[0][0]} band starfind')):
     iterate = 0
-    searchrange0 = searchrange
+    searchrange0 = list(searchrange)
     with tqdm(total=len(fitslist), desc=f'{fitslist[0][0]} band starfind', disable=not enable_progress_bar) as pbar:
         while iterate <= len(fitslist) - 1:
             filename = fitslist[iterate]
@@ -262,14 +262,13 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
 
             loopnum = [0, 0]
             if searchrange0[0] < minthreshold:
-                searchrange0 = searchrange
-            
+                searchrange0 = list(searchrange)
+                
             thDiff = 0.5
             while searchrange0[0] >= minthreshold:
                 center_list = []
-                #print()
                 for threshold in np.arange(searchrange0[0], searchrange0[1], searchrange0[2]):
-                    
+
                     binarized_data = binarize_data(data, threshold, rms, med)
                     labeled_image, _ = ndimage.label(binarized_data)
                     object_slices = ndimage.find_objects(labeled_image)
@@ -287,7 +286,6 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
 
                 unique_center_list = chose_unique_coords(center_list)
                 starnum = len(unique_center_list)
-                #print(f'{filename}, {searchrange0}')
 
                 if loopnum[0] > 0 and loopnum[1] > 0:
                     if searchrange0[0] < minthreshold:
@@ -301,14 +299,15 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
                         loopnum = [0, 0]
                     else:
                         thDiff = 0.5
+
                     searchrange0[0] -= thDiff
                     searchrange0[1] -= thDiff
                     loopnum[0] += 1
                     continue
 
                 elif starnum > maxstarnum:
-                    if loopnum[1] > 4:
-                        thDiff = 5
+                    if loopnum[1] > 3:
+                        thDiff = 10
                         loopnum = [0, 0]
                     else:
                         thDiff = 0.5
@@ -319,7 +318,6 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
                 else:
                     break
             
-
             file = f'{filename[:-5]}.coo'
             write_to_txt(unique_center_list, file)
             coordsfilelist.append(file)
@@ -639,7 +637,7 @@ def do_starfind(fitslist, param, optkey, infrakey):
         }
         minstarnum = minstar[fitslist0[0][0]]
         maxstarnum = maxstar[fitslist0[0][0]]
-        threshold_range = [l_threshold, h_threshold, interval]
+        threshold_range = (l_threshold, h_threshold, interval)
         starnumlist, coordsfilelist, l_threshold1 = starfind_center3(fitslist0, pixscale[band], satcount[band], threshold_range, minstarnum, maxstarnum)
 
         #print(f'starnumlist\n{starnumlist}')
@@ -653,13 +651,13 @@ def do_starfind(fitslist, param, optkey, infrakey):
         for varr in optkey:
             #threshold1 = calc_threshold(fitslist[varr])
             #optstarlist[varr], optcoolist[varr] = iterate_part(fitslist[varr], param, threshold1)
-            optstarlist[varr], optcoolist[varr], opt_l_threshold[varr] = iterate_part(fitslist[varr], param, 5, 9, 2)
+            optstarlist[varr], optcoolist[varr], opt_l_threshold[varr] = iterate_part(fitslist[varr], param, 20, 24, 2)
 
     if infrakey:
         for varr in infrakey:
             #threshold1 = calc_threshold(fitslist[varr])
             #infstarlist[varr], infcoolist[varr] = iterate_part(fitslist[varr], param, threshold1)
-            infstarlist[varr], infcoolist[varr], inf_l_threshold[varr] = iterate_part(fitslist[varr], param, 5, 6, 0.2)    
+            infstarlist[varr], infcoolist[varr], inf_l_threshold[varr] = iterate_part(fitslist[varr], param, 14, 15, 0.2)    
 
     return optstarlist, optcoolist, infstarlist, infcoolist, opt_l_threshold, inf_l_threshold
 

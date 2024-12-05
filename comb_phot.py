@@ -24,8 +24,20 @@ def comb_pset(fitslist):
 
     for nameid, varrlist in tqdm(sep_bandset.items(), desc='{:<13}'.format("combine")):
         #print(f'{nameid}\n{sep_bandset[nameid]}')
+        skylev = 0
+        for f1 in varrlist:
+            with fits.open(f1) as hdu:
+                skylev += float(hdu[0].header.get('SKYCOUNT', 0))
+
+        skylev_ave = skylev / len(varrlist) if varrlist else 0
+
         outname = f'{nameid}.fits'
         bottom.combine(varrlist, outname, 'average')
+
+        with fits.open(outname, mode="update") as hdul:
+            header = hdul[0].header
+            header['SKYCOUNT'] = skylev_ave
+            hdul.flush()
 
 
 def comb_all(fitslist, day, obname):
@@ -33,7 +45,17 @@ def comb_all(fitslist, day, obname):
     for band, varrlist in tqdm(fitslist.items(), desc='{:<13}'.format("comb all")):
         outname = f'{band}{day}_{obname}_all.fits'
         bottom.combine(varrlist, outname, 'average')
+        skylev = 0
+        for f1 in varrlist:
+            with fits.open(f1) as hdu:
+                skylev += float(hdu[0].header.get('SKYCOUNT', 0))
+                
+        skylev_ave = skylev / len(varrlist) if varrlist else 0 
 
+        with fits.open(outname, mode="update") as hdul:
+            header = hdul[0].header
+            header['SKYCOUNT'] = skylev_ave
+            hdul.flush()
 
 
 """
