@@ -19,7 +19,7 @@ starmatch       1
 rel_match       0
 #----------comb_phot_param----------
 comb_per_set    1
-comb_all        0
+comb_all        1
 aperture_phot   0
 #----------rm_result----------------
 rm_row_fits     1
@@ -28,6 +28,6 @@ rm_lev_fits     1
 rm_sky_fits     1
 rm_geo_fits     0
 
-rm_coo_file     0
+rm_coo_file     1
 rm_match_file   1
 rm_geo_file     1
