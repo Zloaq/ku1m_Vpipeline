@@ -248,6 +248,7 @@ def match_object(fitslist, search_name_list):
 		except:
 			print('header is broken', fits_file)
 			wrong_index.append(index)
+		
 	
 	for index in wrong_index[::-1]:
 		del fitslist[index]
@@ -481,7 +482,7 @@ def execute_code(param, objparam, log, bands='gijhk'):
 	if param.skysub == 1:
 		fitslist = glob_latestproc(bands, fitspro)
 		header = readheader(fitslist)
-		print(f'fffff{fitslist}')
+		#print(f'fffff{fitslist}')
 		fitslist, skytype = flat_sky.method3(fitslist, header.object)
 		header = readheader(fitslist)
 		flat_sky.method4(fitslist, header.object, skytype)

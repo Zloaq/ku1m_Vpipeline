@@ -39,17 +39,17 @@ k_cutrange      '[9:-8, 10:-7]'
 
 #---------starfind-------------------
 
-g_maxstarnum    60
-i_maxstarnum    60
-j_maxstarnum    30
-h_maxstarnum    30
-k_maxstarnum    30
+g_maxstarnum    80
+i_maxstarnum    80
+j_maxstarnum    80
+h_maxstarnum    80
+k_maxstarnum    80
 
 g_minstarnum    30
 i_minstarnum    30
-j_minstarnum    10
-h_minstarnum    10
-k_minstarnum    10
+j_minstarnum    30
+h_minstarnum    30
+k_minstarnum    30
 
 #--------triangle_match-------------------
 

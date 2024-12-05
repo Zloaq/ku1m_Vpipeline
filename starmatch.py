@@ -138,8 +138,8 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
 
         data_flat_sorted = np.sort(data.ravel())
         index0 = int(len(data_flat_sorted) / 4)
-        lower_quarter = data_flat_sorted[:index0]
-        offset_fixed = np.median(lower_quarter)
+        lower = data_flat_sorted[:index0]
+        offset_fixed = np.median(lower)
 
         # スライスのリストを numpy 配列に変換
         slices_array = np.array([[sl[0].start, sl[0].stop, sl[1].start, sl[1].stop] for sl in slices])
@@ -265,6 +265,7 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
                 searchrange0[0] += 1
                 searchrange0[1] += 1
 
+            thDiff = 0.5
             while searchrange0[0] >= minthreshold:
                 center_list = []
                 #print()
@@ -284,8 +285,6 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
                     centers = clustar_centroid(data, slice_list)
                     center_list.extend(centers)
 
-                #print(len(center_list))
-                
 
                 unique_center_list = chose_unique_coords(center_list)
                 starnum = len(unique_center_list)
@@ -293,19 +292,29 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
 
                 if loopnum[0] > 0 and loopnum[1] > 0:
                     if searchrange0[0] < minthreshold:
-                        searchrange0[0] -= 0.5
-                        searchrange0[1] -= 0.5
+                        searchrange0[0] -= thDiff
+                        searchrange0[1] -= thDiff
                     break
 
                 elif (starnum < minstarnum) and (searchrange0[0] > minthreshold):
-                    #print(f'retry starfind')
-                    searchrange0[0] -= 0.5
-                    searchrange0[1] -= 0.5
+                    if searchrange0[0] > minthreshold + 6:
+                        thDiff = 5
+                        loopnum = [0, 0]
+                    else:
+                        thDiff = 0.5
+                    searchrange0[0] -= thDiff
+                    searchrange0[1] -= thDiff
                     loopnum[0] += 1
                     continue
+
                 elif starnum > maxstarnum:
-                    searchrange0[0] += 0.5
-                    searchrange0[1] += 0.5
+                    if loopnum[1] > 4:
+                        thDiff = 5
+                        loopnum = [0, 0]
+                    else:
+                        thDiff = 0.5
+                    searchrange0[0] += thDiff
+                    searchrange0[1] += thDiff
                     loopnum[1] += 1
                     continue
                 else:

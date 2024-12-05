@@ -151,15 +151,10 @@ def method3(flist, obnamelist):
 def method4(flist, obnamelist, skytype):
     # sky subtraction
 
-    if skytype == 'self':
-        fitspro.append('selfsky')
-    elif skytype == 'off':
-        fitspro.append('offsky')
-
     for i1 in tqdm(range(len(obnamelist)), desc='{:<13}'.format('sky_subtract')):
         band = flist[i1][0]
         sky = '_' + band + '_' + obnamelist[i1] + '_skyimg.fits'
-        out2 = re.sub(r'.fits', r'_sky.fits', flist[i1])
+        out2 = re.sub(r'.fits', f'_{skytype}sky.fits', flist[i1])
         bottom.imarith(flist[i1], '-', sky, out2)
         #print(flist[i1],'-', sky, '=' ,out2)
 

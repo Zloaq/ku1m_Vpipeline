@@ -140,9 +140,9 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
         max_y, max_x = data.shape
 
         data_flat_sorted = np.sort(data.ravel())
-        index0 = int(len(data_flat_sorted) / 4)
-        lower_quarter = data_flat_sorted[:index0]
-        offset_fixed = np.median(lower_quarter)
+        index0 = int(len(data_flat_sorted) / 2)
+        lower = data_flat_sorted[:index0]
+        offset_fixed = np.median(lower)
 
         # スライスのリストを numpy 配列に変換
         slices_array = np.array([[sl[0].start, sl[0].stop, sl[1].start, sl[1].stop] for sl in slices])
@@ -262,9 +262,9 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
 
             loopnum = [0, 0]
             if searchrange0[0] < minthreshold:
-                searchrange0[0] += 1
-                searchrange0[1] += 1
-
+                searchrange0 = searchrange
+            
+            thDiff = 0.5
             while searchrange0[0] >= minthreshold:
                 center_list = []
                 #print()
@@ -284,8 +284,6 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
                     centers = clustar_centroid(data, slice_list)
                     center_list.extend(centers)
 
-                #print(len(center_list))
-                
 
                 unique_center_list = chose_unique_coords(center_list)
                 starnum = len(unique_center_list)
@@ -293,19 +291,29 @@ def starfind_center3(fitslist, pixscale, satcount, searchrange=[3.0, 5.0, 0.2], 
 
                 if loopnum[0] > 0 and loopnum[1] > 0:
                     if searchrange0[0] < minthreshold:
-                        searchrange0[0] -= 0.5
-                        searchrange0[1] -= 0.5
+                        searchrange0[0] -= thDiff
+                        searchrange0[1] -= thDiff
                     break
 
                 elif (starnum < minstarnum) and (searchrange0[0] > minthreshold):
-                    #print(f'retry starfind')
-                    searchrange0[0] -= 0.5
-                    searchrange0[1] -= 0.5
+                    if searchrange0[0] > minthreshold + 6:
+                        thDiff = 5
+                        loopnum = [0, 0]
+                    else:
+                        thDiff = 0.5
+                    searchrange0[0] -= thDiff
+                    searchrange0[1] -= thDiff
                     loopnum[0] += 1
                     continue
+
                 elif starnum > maxstarnum:
-                    searchrange0[0] += 0.5
-                    searchrange0[1] += 0.5
+                    if loopnum[1] > 4:
+                        thDiff = 5
+                        loopnum = [0, 0]
+                    else:
+                        thDiff = 0.5
+                    searchrange0[0] += thDiff
+                    searchrange0[1] += thDiff
                     loopnum[1] += 1
                     continue
                 else:
@@ -771,6 +779,9 @@ def do_xyxymatch(param, optstarlist, optcoolist, infstarlist, infcoolist):
     #ここまで
 
     for varr in infcoolist:
+        print(f'{varr} base is {varr}{infbase}.fits')
+
+    for varr in infcoolist:
         if infcoolist[varr] and max(infstarlist[varr]) > 3:
             inf_match[varr] = 1
             inf_matchedf[varr] = []
@@ -1023,7 +1034,7 @@ def do_geotran(fitslist, param, optkey, infrakey, opt_matchb, inf_matchb, opt_ge
             if geotran_base[varr] in inf_iddict[fitsid]:
                 base_band = geotran_base[varr]
                 index = inf_iddict[fitsid][base_band]
-            elif inf_iddict[fitsid]:
+            elif inf_iddict[fitsid] and param.rel_match == 1:
                 #print(fitsname)
                 base_band = list(inf_iddict[fitsid].keys())[0]
                 index = inf_iddict[fitsid][base_band]
