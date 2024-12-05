@@ -100,6 +100,8 @@ def method3(flist, obnamelist):
     def off_sky(firstoff, firston, offdict):
 
         for band in tqdm(firstoff, desc='{:<13}'.format('make offsky')):
+            print(f'firstoff{firstoff}')
+            print(f'firston{firston}')
             off_hdulist = [bottom.readheader(fits) for fits in firstoff[band]]
             on_hdulist  = [bottom.readheader(fits) for fits in firston[band]]
             for hdu in on_hdulist:

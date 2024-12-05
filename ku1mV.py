@@ -481,6 +481,7 @@ def execute_code(param, objparam, log, bands='gijhk'):
 	if param.skysub == 1:
 		fitslist = glob_latestproc(bands, fitspro)
 		header = readheader(fitslist)
+		print(f'fffff{fitslist}')
 		fitslist = flat_sky.method3(fitslist, header.object)
 		header = readheader(fitslist)
 		flat_sky.method4(fitslist, header.object)
