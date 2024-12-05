@@ -482,10 +482,13 @@ def execute_code(param, objparam, log, bands='gijhk'):
 		fitslist = glob_latestproc(bands, fitspro)
 		header = readheader(fitslist)
 		print(f'fffff{fitslist}')
-		fitslist = flat_sky.method3(fitslist, header.object)
+		fitslist, skytype = flat_sky.method3(fitslist, header.object)
 		header = readheader(fitslist)
-		flat_sky.method4(fitslist, header.object)
-		fitspro.append('sky')
+		flat_sky.method4(fitslist, header.object, skytype)
+		if skytype == 'self':
+			fitspro.append('selfsky')
+		elif skytype == 'off':
+			fitspro.append('offsky')
 		
 	if param.starmatch == 1:
 		if param.quicklook == 1:

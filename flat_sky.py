@@ -108,7 +108,7 @@ def method3(flist, obnamelist):
                 base = float(hdu.mjd)
                 sky_hdu = min(off_hdulist, key=lambda x: abs(float(x.mjd) - base))
                 out = '_' + band + '_' + hdu.object + '_skyimg.fits'
-                bottom.combine(offdict[band+'_'+hdu.object], out, 'median', 'none')
+                bottom.combine(offdict[band+'_'+sky_hdu.object], out, 'median', 'none')
                 print(out, 'was made')
         
     firstoff = {}
@@ -139,15 +139,22 @@ def method3(flist, obnamelist):
 
     if len(offdict) == 0:
         self_sky(ondict)
+        skytype = 'self'
     else:
         off_sky(firstoff, firston, offdict)
+        skytype = 'off'
         
-    return [item for sublist in ondict.values() for item in sublist]
+    return [item for sublist in ondict.values() for item in sublist], skytype
 
 
 
-def method4(flist, obnamelist):
+def method4(flist, obnamelist, skytype):
     # sky subtraction
+
+    if skytype == 'self':
+        fitspro.append('selfsky')
+    elif skytype == 'off':
+        fitspro.append('offsky')
 
     for i1 in tqdm(range(len(obnamelist)), desc='{:<13}'.format('sky_subtract')):
         band = flist[i1][0]
