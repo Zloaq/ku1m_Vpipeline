@@ -100,16 +100,18 @@ def method3(flist, obnamelist):
     def off_sky(firstoff, firston, offdict):
 
         for band in tqdm(firstoff, desc='{:<13}'.format('make offsky')):
-            print(f'firstoff{firstoff}')
-            print(f'firston{firston}')
-            off_hdulist = [bottom.readheader(fits) for fits in firstoff[band]]
-            on_hdulist  = [bottom.readheader(fits) for fits in firston[band]]
-            for hdu in on_hdulist:
-                base = float(hdu.mjd)
-                sky_hdu = min(off_hdulist, key=lambda x: abs(float(x.mjd) - base))
-                out = '_' + band + '_' + hdu.object + '_skyimg.fits'
-                bottom.combine(offdict[band+'_'+sky_hdu.object], out, 'median', 'none')
-                print(out, 'was made')
+            #print(f'\nband {band}')
+            #print(f'\nfirstoff{firstoff}')
+            #print(f'\nfirston{firston}')
+            off_hduobj = bottom.readheader(firstoff[band])
+            on_hduobj  = bottom.readheader(firston[band])
+            for idxon, mjd in enumerate(on_hduobj.mjd):
+                idxoff = min(range(len(off_hduobj.mjd)), key=lambda i: abs(float(off_hduobj.mjd[i]) - mjd))
+                out = '_' + band + '_' + on_hduobj.object[idxon] + '_skyimg.fits'
+                #print(f'check {band+"_"+off_hduobj.object[idxoff]}')
+                #print(offdict)
+                bottom.combine(offdict[band+'_'+off_hduobj.object[idxoff]], out, 'median', 'none')
+                #print(out, 'was made')
         
     firstoff = {}
     firston  = {}

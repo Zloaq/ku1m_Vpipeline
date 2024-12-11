@@ -243,10 +243,12 @@ def match_object(fitslist, search_name_list):
 			if temp_obname == None:
 				print('header is broken', fits_file)
 				wrong_index.append(index)
+				obnamelist.append(None)
 				continue
 			obnamelist.append(HDUlist[0].header.get('OBJECT'))
 		except:
 			print('header is broken', fits_file)
+			obnamelist.append('broken')
 			wrong_index.append(index)
 		
 	
@@ -268,6 +270,8 @@ def match_object(fitslist, search_name_list):
 			del fitslist[index]
 			del obnamelist[index]
 		found_index.clear()
+	
+	#print(f'testtttt \n{outfitslist}\n\n{outobnamelist}\n\n')
 			
 	return outfitslist, outobnamelist
 	
