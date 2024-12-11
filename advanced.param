@@ -24,9 +24,9 @@ theta_hk        0.1746
 
 g_satcount      38000
 i_satcount      38000
-j_satcount      10000
-h_satcount      10000
-k_satcount      9000
+j_satcount      15000
+h_satcount      15000
+k_satcount      15000
 
 #--------cut_param------------------
 
@@ -47,9 +47,9 @@ k_maxstarnum    30
 
 g_minstarnum    20
 i_minstarnum    20
-j_minstarnum    10
-h_minstarnum    10
-k_minstarnum    10
+j_minstarnum    20
+h_minstarnum    20
+k_minstarnum    20
 
 #--------triangle_match-------------------
 

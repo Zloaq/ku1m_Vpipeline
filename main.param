@@ -9,7 +9,7 @@ work_dir        '/Users/motomo/iriki/workdir/{objectname}/{date}'
 quicklook       1
 flatdiv         0
 cut             1
-gflip           0
+gflip           1
 sub_skylev      1
 div_skylev      0
 custom_skylev   0
@@ -28,6 +28,6 @@ rm_lev_fits     1
 rm_sky_fits     0
 rm_geo_fits     0
 
-rm_coo_file     1
+rm_coo_file     0
 rm_match_file   1
 rm_geo_file     1
